@@ -1219,6 +1219,9 @@ initMicButton();
 // ---------- Modo "Charla en vivo": escucha, envía sola, lee la respuesta, y vuelve a escuchar ----------
 let liveMode = false;
 let liveModeSpeaking = false;
+let liveTurnInProgress = false;
+let liveSilenceTimer = null;
+let liveTranscriptFinal = '';
 
 function setLiveModeUI(active){
   const btn = document.getElementById('liveModeBtn');
@@ -1241,55 +1244,87 @@ function toggleLiveMode(){
   }
 }
 
+// Escucha de forma continua; nosotros mismos detectamos el silencio (no confiamos en que el navegador corte solo, es poco confiable)
 function startLiveListening(){
-  if(!liveMode || isListening || liveModeSpeaking) return;
+  if(!liveMode || liveModeSpeaking || liveTurnInProgress) return;
+  if(speechRecognizer){ try{ speechRecognizer.onend = null; speechRecognizer.stop(); }catch(e){} }
   const micBtn = document.getElementById('micBtn');
   const input = document.getElementById('chatInput');
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   speechRecognizer = new SR();
   speechRecognizer.lang = 'en-US';
-  speechRecognizer.continuous = false;
+  speechRecognizer.continuous = true;
   speechRecognizer.interimResults = true;
   speechRecognizer.maxAlternatives = 1;
+  liveTranscriptFinal = '';
   input.value = '';
   isListening = true;
   micBtn.classList.add('listening');
   buddyLastActivity = Date.now();
 
   speechRecognizer.onresult = (e)=>{
-    let interim = '', final = '';
+    let interim = '';
     for(let i = e.resultIndex; i < e.results.length; i++){
       const transcript = e.results[i][0].transcript;
-      if(e.results[i].isFinal) final += transcript;
+      if(e.results[i].isFinal) liveTranscriptFinal += transcript + ' ';
       else interim += transcript;
     }
-    input.value = final + interim;
+    input.value = (liveTranscriptFinal + interim).trim();
     input.dispatchEvent(new Event('input'));
+    resetLiveSilenceTimer();
   };
   speechRecognizer.onerror = (e)=>{
+    if(e.error === 'no-speech') return; // no hay audio todavía, seguimos esperando sin cortar
     isListening = false;
     micBtn.classList.remove('listening');
-    if(liveMode && e.error !== 'not-allowed' && e.error !== 'aborted'){
-      setTimeout(()=>{ if(liveMode) startLiveListening(); }, 900);
+    if(e.error === 'not-allowed'){
+      liveMode = false;
+      setLiveModeUI(false);
+      alert('Necesitamos permiso de micrófono para la charla en vivo.');
+      return;
+    }
+    if(liveMode && !liveModeSpeaking && !liveTurnInProgress){
+      setTimeout(()=>{ if(liveMode && !liveModeSpeaking && !liveTurnInProgress) startLiveListening(); }, 700);
     }
   };
   speechRecognizer.onend = ()=>{
     isListening = false;
     micBtn.classList.remove('listening');
-    if(!liveMode) return;
-    const text = input.value.trim();
-    if(text.length > 1){
-      sendChatMessage(); // en charla en vivo, se envía solo apenas termina de hablar
-    } else {
-      setTimeout(()=>{ if(liveMode && !liveModeSpeaking) startLiveListening(); }, 500);
+    // Chrome a veces corta la sesión continua por su cuenta cada tanto: si seguimos en charla en vivo, retomamos
+    if(liveMode && !liveModeSpeaking && !liveTurnInProgress){
+      setTimeout(()=>{ if(liveMode && !liveModeSpeaking && !liveTurnInProgress) startLiveListening(); }, 300);
     }
   };
   speechRecognizer.start();
 }
 
+// Nuestro propio detector de silencio: si pasaron ~1.6s sin resultados nuevos, asumimos que terminó de hablar
+function resetLiveSilenceTimer(){
+  clearTimeout(liveSilenceTimer);
+  liveSilenceTimer = setTimeout(()=>{
+    const text = document.getElementById('chatInput').value.trim();
+    if(liveMode && !liveModeSpeaking && !liveTurnInProgress && text.length > 1){
+      submitLiveTurn();
+    }
+  }, 1600);
+}
+
+function submitLiveTurn(){
+  clearTimeout(liveSilenceTimer);
+  liveTurnInProgress = true;
+  if(speechRecognizer){ try{ speechRecognizer.onend = null; speechRecognizer.stop(); }catch(e){} }
+  isListening = false;
+  const micBtn = document.getElementById('micBtn');
+  if(micBtn) micBtn.classList.remove('listening');
+  sendChatMessage();
+}
+
 function stopLiveListening(){
-  if(speechRecognizer && isListening) speechRecognizer.stop();
+  clearTimeout(liveSilenceTimer);
+  liveTurnInProgress = false;
+  if(speechRecognizer){ try{ speechRecognizer.onend = null; speechRecognizer.stop(); }catch(e){} }
   if(window.speechSynthesis) window.speechSynthesis.cancel();
+  isListening = false;
   liveModeSpeaking = false;
   const micBtn = document.getElementById('micBtn');
   if(micBtn) micBtn.classList.remove('listening');
@@ -1312,6 +1347,7 @@ async function sendChatMessage(){
     const parsed = parseConvReply(reply);
     appendMsg('ai', parsed.mainText, parsed.correction, parsed.better, parsed.incoherent, parsed.note);
     if(liveMode){
+      liveTurnInProgress = false;
       liveModeSpeaking = true;
       speakText(parsed.mainText, ()=>{
         liveModeSpeaking = false;
@@ -1328,7 +1364,10 @@ async function sendChatMessage(){
     saveProgress();
   }catch(e){
     appendMsg('system', 'Error al conectar con la IA. Intentá de nuevo.');
-    if(liveMode) setTimeout(()=>{ if(liveMode) startLiveListening(); }, 800);
+    if(liveMode){
+      liveTurnInProgress = false;
+      setTimeout(()=>{ if(liveMode && !liveModeSpeaking) startLiveListening(); }, 800);
+    }
   }
   document.getElementById('sendChat').disabled = false;
   document.getElementById('convLoading').style.display = 'none';
