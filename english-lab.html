@@ -1,0 +1,2550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inglés para Guille</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-900:#141B24;
+    --navy-800:#1B2530;
+    --navy-700:#25323F;
+    --navy-600:#31414F;
+    --gold-500:#D4A94A;
+    --gold-300:#E9D19C;
+    --cream:#F2EDE1;
+    --ink:#E7E2D6;
+    --muted:#8FA0AD;
+    --success:#7FB77E;
+    --error:#D9776B;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 85% -10%, rgba(212,169,74,0.08), transparent 60%),
+      var(--navy-900);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:32px 20px 60px;
+  }
+  .wrap{max-width:900px;margin:0 auto;}
+
+  /* ---- Header ---- */
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:24px;
+    padding-bottom:22px;
+    border-bottom:1px solid var(--navy-600);
+    margin-bottom:28px;
+    flex-wrap:wrap;
+  }
+  .title-block .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--gold-500);
+    margin-bottom:8px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:34px;
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  .subtitle{color:var(--muted);font-size:14.5px;max-width:440px;line-height:1.5;}
+  .credit{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;color:var(--muted);opacity:.7;margin-top:8px;}
+  .weak-areas{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px;}
+  .weak-chip{
+    background:rgba(201,154,60,0.12);border:1px solid rgba(201,154,60,0.35);
+    color:var(--gold-500);font-size:11px;padding:3px 9px;border-radius:20px;
+    font-family:'IBM Plex Mono',monospace;letter-spacing:.02em;
+  }
+  .weak-reset{
+    background:none;border:none;color:var(--muted);font-size:11px;
+    text-decoration:underline;cursor:pointer;padding:3px 4px;
+  }
+
+  /* Seal badge */
+  .seal{
+    width:104px;height:104px;flex:none;position:relative;
+    display:flex;align-items:center;justify-content:center;
+    filter:drop-shadow(0 6px 14px rgba(0,0,0,0.35));
+  }
+  .seal svg{width:100%;height:100%;}
+  .seal .seal-level{
+    position:absolute;
+    font-family:'Fraunces',serif;font-weight:700;font-size:22px;color:var(--navy-900);
+    top:38%;transform:translateY(-50%);
+  }
+  .seal .seal-pct{
+    position:absolute;top:60%;
+    font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.05em;color:var(--navy-900);
+  }
+  .settings-btn{
+    flex:none;width:34px;height:34px;border-radius:8px;
+    background:var(--navy-800);border:1px solid var(--navy-600);color:var(--muted);
+    font-size:15px;cursor:pointer;
+  }
+  .settings-btn:hover{color:var(--gold-500);border-color:var(--gold-500);}
+
+  .api-banner{
+    background:rgba(212,169,74,0.1);
+    border:1px solid var(--gold-500);
+    color:var(--gold-300);
+    padding:10px 14px;
+    border-radius:8px;
+    margin-bottom:20px;
+    font-size:13px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  }
+  .api-banner button{white-space:nowrap;}
+
+  .modal-overlay{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(10,14,18,0.72);
+    z-index:80;
+    align-items:center;justify-content:center;
+    padding:20px;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-box{
+    background:var(--navy-800);border:1px solid var(--navy-600);border-radius:12px;
+    padding:24px;max-width:420px;width:100%;
+    max-height:86vh;overflow-y:auto;
+  }
+  .modal-box h3{font-family:'Fraunces',serif;font-size:18px;margin:0 0 10px;}
+  .modal-box .hint{margin-bottom:14px;}
+  .modal-box input{margin-bottom:16px;}
+  .modal-actions{display:flex;gap:10px;margin-bottom:14px;}
+  .modal-link{color:var(--gold-500);font-size:12.5px;text-decoration:none;}
+  .modal-link:hover{text-decoration:underline;}
+  .provider-warning{
+    background:rgba(227,155,45,0.1);border:1px solid rgba(227,155,45,0.35);
+    border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.5;
+    color:var(--gold-500);margin-bottom:16px;
+  }
+  .provider-panel{display:none;}
+  .provider-panel.active{display:block;}
+  .status-line{font-size:12.5px;margin:-6px 0 14px;min-height:16px;}
+  .status-line.ok{color:#7CC98A;}
+  .status-line.err{color:#E35C5C;}
+  .advanced-toggle{
+    background:none;border:none;color:var(--muted);font-size:12.5px;
+    cursor:pointer;padding:0;margin-bottom:14px;text-decoration:underline;
+  }
+
+  /* ---- Tabs ---- */
+  nav.tabs{display:flex;gap:6px;margin-bottom:26px;flex-wrap:wrap;}
+  .tab-btn{
+    background:var(--navy-800);
+    border:1px solid var(--navy-600);
+    color:var(--muted);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.03em;
+    padding:11px 14px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:all .15s ease;
+    text-align:left;
+  }
+  .tab-btn b{color:var(--gold-500);font-weight:600;margin-right:6px;}
+  .tab-btn:hover{border-color:var(--gold-500);color:var(--ink);}
+  .tab-btn.active{background:var(--navy-700);border-color:var(--gold-500);color:var(--cream);}
+
+  section.panel{display:none;}
+  section.panel.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  .card{
+    background:var(--navy-800);
+    border:1px solid var(--navy-600);
+    border-radius:var(--radius);
+    padding:22px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-family:'Fraunces',serif;font-weight:600;font-size:19px;margin:0 0 4px;
+  }
+  .card .hint{color:var(--muted);font-size:13px;margin:0 0 16px;line-height:1.5;}
+
+  button.primary{
+    background:var(--gold-500);
+    color:var(--navy-900);
+    border:none;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    padding:11px 18px;
+    border-radius:7px;
+    cursor:pointer;
+    transition:transform .1s ease, background .15s ease;
+  }
+  button.primary:hover{background:var(--gold-300);}
+  button.primary:active{transform:scale(0.98);}
+  button.primary:disabled{opacity:.5;cursor:default;}
+  button.secondary{
+    background:transparent;
+    color:var(--gold-500);
+    border:1px solid var(--navy-600);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    padding:10px 16px;
+    border-radius:7px;
+    cursor:pointer;
+  }
+  button.secondary:hover{border-color:var(--gold-500);}
+
+  select, textarea, input[type=text]{
+    background:var(--navy-900);
+    border:1px solid var(--navy-600);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    padding:10px 12px;
+    border-radius:7px;
+    width:100%;
+  }
+  textarea{resize:vertical;min-height:130px;line-height:1.5;}
+  label.field-label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-family:'IBM Plex Mono',monospace;letter-spacing:.03em;}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;}
+  .row > div{flex:1;min-width:180px;}
+
+  .loading{color:var(--gold-300);font-size:13px;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:8px;}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--gold-500);animation:pulse 1s infinite ease-in-out;}
+  @keyframes pulse{0%,100%{opacity:.3;}50%{opacity:1;}}
+
+  /* Conversation */
+  .chat-log{display:flex;flex-direction:column;gap:12px;max-height:420px;overflow-y:auto;padding:4px 2px 8px;margin-bottom:14px;}
+  .msg{max-width:82%;padding:11px 14px;border-radius:10px;font-size:14.5px;line-height:1.5;}
+  .msg.user{align-self:flex-end;background:var(--navy-700);border:1px solid var(--gold-500);}
+  .msg.ai{align-self:flex-start;background:var(--navy-900);border:1px solid var(--navy-600);}
+  .msg.system{align-self:center;color:var(--muted);font-size:12px;font-family:'IBM Plex Mono',monospace;}
+  .correction{margin-top:8px;padding-top:8px;border-top:1px dashed var(--navy-600);font-size:12.5px;color:var(--gold-300);line-height:1.5;}
+  .correction .better{display:block;margin-top:6px;color:var(--success);font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  .coherence-flag{margin-top:8px;padding-top:8px;border-top:1px dashed var(--navy-600);font-size:12.5px;color:#E3A96B;line-height:1.5;}
+  .chat-input-row{display:flex;gap:10px;}
+  .chat-input-row textarea{min-height:52px;}
+  .mic-btn{
+    background:var(--navy-900);border:1px solid var(--navy-600);border-radius:8px;
+    width:52px;min-width:52px;height:52px;font-size:20px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;color:var(--ink);
+  }
+  .mic-btn:hover{border-color:var(--gold-500);}
+  .mic-btn.listening{
+    background:rgba(227,92,92,0.15);border-color:#E35C5C;
+    animation:micPulse 1s ease-in-out infinite;
+  }
+  .mic-btn.unsupported{opacity:.4;cursor:not-allowed;}
+  @keyframes micPulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(227,92,92,0.45);}
+    50%{box-shadow:0 0 0 8px rgba(227,92,92,0);}
+  }
+  .voice-toggle{
+    display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);
+    cursor:pointer;user-select:none;
+  }
+  .voice-toggle input{width:auto;margin:0;}
+  .speak-btn{
+    background:none;border:none;color:var(--gold-500);cursor:pointer;
+    font-size:13px;padding:2px 4px;margin-top:4px;opacity:.75;
+  }
+  .speak-btn:hover{opacity:1;}
+  #liveModeBtn.live-active{
+    background:rgba(227,92,92,0.15);border-color:#E35C5C;color:#E35C5C;
+    animation:micPulse 1.6s ease-in-out infinite;
+  }
+
+  /* Grammar quiz */
+  .quiz-question{font-size:16px;line-height:1.55;margin-bottom:16px;}
+  .options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+  .opt-btn{
+    text-align:left;background:var(--navy-900);border:1px solid var(--navy-600);color:var(--ink);
+    padding:11px 14px;border-radius:8px;cursor:pointer;font-size:14px;font-family:'Inter',sans-serif;
+  }
+  .opt-btn:hover{border-color:var(--gold-500);}
+  .opt-btn.correct{border-color:var(--success);background:rgba(127,183,126,0.12);}
+  .opt-btn.incorrect{border-color:var(--error);background:rgba(217,119,107,0.12);}
+  .explanation{background:var(--navy-900);border:1px solid var(--navy-600);border-radius:8px;padding:14px;font-size:13.5px;line-height:1.55;color:var(--muted);margin-top:6px;}
+  .score-pill{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--gold-500);
+    border:1px solid var(--navy-600);padding:5px 10px;border-radius:20px;display:inline-block;
+  }
+
+  /* Writing */
+  .task-box{background:var(--navy-900);border-left:3px solid var(--gold-500);padding:14px 16px;border-radius:6px;font-size:14.5px;line-height:1.55;margin-bottom:16px;}
+  .feedback-block{margin-top:18px;}
+  .feedback-block h3{font-family:'Fraunces',serif;font-size:15px;color:var(--gold-300);margin:16px 0 8px;}
+  .error-item{background:var(--navy-900);border:1px solid var(--navy-600);border-radius:8px;padding:12px 14px;margin-bottom:8px;font-size:13.5px;line-height:1.5;}
+  .error-item .orig{color:var(--error);text-decoration:line-through;}
+  .error-item .fix{color:var(--success);font-weight:600;}
+  .level-badge{
+    display:inline-block;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;
+    background:var(--gold-500);color:var(--navy-900);padding:4px 10px;border-radius:6px;margin-right:8px;
+  }
+
+  /* Reading */
+  .passage{background:var(--navy-900);border:1px solid var(--navy-600);border-radius:8px;padding:16px 18px;font-size:14.5px;line-height:1.65;margin-bottom:18px;max-height:280px;overflow-y:auto;}
+  .passage h3{font-family:'Fraunces',serif;margin-top:0;}
+
+  footer.note{margin-top:30px;color:var(--muted);font-size:12px;text-align:center;line-height:1.6;}
+
+  /* ---- Buddy assistant ---- */
+  .buddy{
+    position:fixed;
+    z-index:60;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    cursor:pointer;
+    right:24px; bottom:24px; left:auto; top:auto;
+    transition: right 1.1s cubic-bezier(.4,0,.2,1), bottom 1.1s cubic-bezier(.4,0,.2,1), left 1.1s cubic-bezier(.4,0,.2,1), top 1.1s cubic-bezier(.4,0,.2,1);
+    user-select:none;
+  }
+  .buddy canvas{
+    width:72px;height:72px;
+    image-rendering:pixelated;
+    image-rendering:-moz-crisp-edges;
+    image-rendering:crisp-edges;
+    animation:buddyBob 2.4s ease-in-out infinite;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,0.45));
+  }
+  @keyframes buddyBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+  .buddy.dragging{cursor:grabbing;}
+  .buddy.dragging canvas{animation:none; transform:scale(1.12,0.88) rotate(-4deg);}
+  .buddy.shaking canvas{animation:buddyDizzyWobble .13s ease-in-out infinite;}
+  @keyframes buddyDizzyWobble{
+    0%{transform:translate(-4px,0) rotate(-10deg);}
+    25%{transform:translate(4px,-2px) rotate(8deg);}
+    50%{transform:translate(-3px,2px) rotate(-6deg);}
+    75%{transform:translate(3px,-1px) rotate(6deg);}
+    100%{transform:translate(-4px,0) rotate(-10deg);}
+  }
+  .buddy.hopping canvas{animation:buddyHop .4s ease-in-out 3;}
+  @keyframes buddyHop{
+    0%,100%{transform:translateY(0) scale(1,1);}
+    35%{transform:translateY(-16px) scale(0.92,1.1);}
+    55%{transform:translateY(-16px) scale(0.92,1.1);}
+    80%{transform:translateY(0) scale(1.1,0.9);}
+  }
+  .buddy.walking canvas{animation:buddyWalkBob .28s ease-in-out infinite;}
+  @keyframes buddyWalkBob{
+    0%,100%{transform:translateY(0) rotate(-3deg);}
+    50%{transform:translateY(-5px) rotate(3deg);}
+  }
+  .buddy.muted canvas{animation:none;opacity:.55;}
+  .buddy .zzz{position:absolute;top:-6px;right:2px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);display:none;}
+  .buddy.muted .zzz{display:block;}
+
+  .buddy-bubble{
+    position:fixed;
+    right:24px; bottom:104px; left:auto; top:auto;
+    z-index:61;
+    max-width:220px;
+    background:var(--cream);
+    color:var(--navy-900);
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:12.5px;
+    line-height:1.5;
+    box-shadow:0 8px 20px rgba(0,0,0,0.4);
+    display:none;
+  }
+  .buddy-bubble::after{
+    content:'';
+    position:absolute;
+  }
+  .buddy-bubble.arrow-right::after{
+    top:50%; right:-8px; transform:translateY(-50%);
+    border-width:8px 0 8px 8px;
+    border-style:solid;
+    border-color:transparent transparent transparent var(--cream);
+  }
+  .buddy-bubble.arrow-left::after{
+    top:50%; left:-8px; transform:translateY(-50%);
+    border-width:8px 8px 8px 0;
+    border-style:solid;
+    border-color:transparent var(--cream) transparent transparent;
+  }
+  .buddy-bubble.show{display:block;animation:popIn .2s ease;}
+  @keyframes popIn{from{opacity:0;transform:translateY(6px) scale(.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+  .buddy-bubble p{margin:0 0 8px;}
+  .buddy-bubble p.ok-pop{
+    text-align:center;font-family:'Fraunces',serif;font-weight:700;font-size:24px;color:var(--gold-500);
+    animation:okPop .5s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes okPop{0%{transform:scale(.4) rotate(-8deg);opacity:0;}60%{transform:scale(1.15) rotate(4deg);opacity:1;}100%{transform:scale(1) rotate(0);}}
+  .buddy-bubble .coherence-note{margin-top:8px;padding-top:8px;border-top:1px dashed var(--navy-600);font-size:12px;color:var(--navy-800);font-style:italic;}
+  .buddy-bubble .bubble-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .buddy-bubble button{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    border:none;
+    background:var(--navy-800);
+    color:var(--cream);
+    padding:5px 8px;
+    border-radius:5px;
+    cursor:pointer;
+  }
+  .buddy-bubble button:hover{background:var(--navy-700);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="title-block">
+      <div class="eyebrow">Advanced English &middot; Exam, Work &amp; Everyday Life</div>
+      <h1>Inglés para Guille</h1>
+      <p class="subtitle">Práctica integral para tu examen avanzado (B2&ndash;C2) y para el inglés que usás en el día a día: profesional, cotidiano y técnico &mdash; conversación, gramática, writing y lectura, con corrección por IA.</p>
+      <p class="credit">by ThanaJAD</p>
+      <div class="weak-areas" id="weakAreas" style="display:none;"></div>
+    </div>
+    <div class="seal" id="seal">
+      <svg viewBox="0 0 100 100">
+        <defs>
+          <radialGradient id="sealGrad" cx="35%" cy="30%" r="80%">
+            <stop offset="0%" stop-color="#E9D19C"/>
+            <stop offset="100%" stop-color="#C99A3C"/>
+          </radialGradient>
+        </defs>
+        <circle cx="50" cy="50" r="46" fill="url(#sealGrad)" stroke="#8A6A24" stroke-width="1.5"/>
+        <circle cx="50" cy="50" r="39" fill="none" stroke="#8A6A24" stroke-width="1" stroke-dasharray="2 3"/>
+      </svg>
+      <div class="seal-level" id="sealLevel">&ndash;</div>
+      <div class="seal-pct" id="sealPct">SIN DATOS</div>
+    </div>
+    <button class="settings-btn" id="openApiModal" title="Configurar la IA">⚙</button>
+  </header>
+
+  <div class="api-banner" id="apiBanner" style="display:none;">
+    <span>⚠️ Para que la IA funcione necesitás terminar de configurarla (elegí proveedor y API key, o cargá el modelo local).</span>
+    <button class="secondary" id="apiBannerBtn">Configurar ahora</button>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="conversation"><b>01</b>Conversación</button>
+    <button class="tab-btn" data-tab="grammar"><b>02</b>Gramática &amp; Vocabulario</button>
+    <button class="tab-btn" data-tab="writing"><b>03</b>Writing</button>
+    <button class="tab-btn" data-tab="reading"><b>04</b>Lectura</button>
+  </nav>
+
+  <!-- ============ TAB 1: CONVERSATION ============ -->
+  <section class="panel active" id="panel-conversation">
+    <div class="card">
+      <h2>Práctica oral / conversacional</h2>
+      <p class="hint">Elegí un contexto y conversá en inglés. Si cometés un error notable, la IA te lo va a señalar debajo de su respuesta.</p>
+      <div class="row">
+        <div>
+          <label class="field-label">CONTEXTO</label>
+          <select id="convContext">
+            <option value="exam">Entrevista de examen oral (formal)</option>
+            <option value="meeting">Reunión de trabajo (general)</option>
+            <option value="colleague">Conversación con un colega</option>
+            <option value="client">Llamada con un cliente</option>
+            <option value="technical">Tema técnico o especializado de tu área</option>
+            <option value="daily">Vida cotidiana (viajes, compras, charla informal)</option>
+          </select>
+        </div>
+        <button class="secondary" id="resetConv">Reiniciar conversación</button>
+      </div>
+      <div class="row" style="margin-top:-6px;">
+        <label class="voice-toggle">
+          <input type="checkbox" id="speakToggle">
+          🔊 Escuchar las respuestas de la IA
+        </label>
+        <button class="secondary" id="liveModeBtn" type="button">🎙️ Charla en vivo</button>
+      </div>
+      <div class="chat-log" id="chatLog"></div>
+      <div id="convLoading" class="loading" style="display:none;"><span class="dot"></span> Escribiendo respuesta…</div>
+      <div class="chat-input-row">
+        <button class="mic-btn" id="micBtn" type="button" title="Hablar en inglés">🎤</button>
+        <textarea id="chatInput" placeholder="Escribí tu respuesta en inglés…"></textarea>
+        <button class="primary" id="sendChat">Enviar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 2: GRAMMAR ============ -->
+  <section class="panel" id="panel-grammar">
+    <div class="card">
+      <h2>Use of English &mdash; gramática y vocabulario avanzado</h2>
+      <p class="hint">Ejercicios estilo C1/C2: opción múltiple, transformación de oraciones y vocabulario en contexto.</p>
+      <div class="row">
+        <span class="score-pill" id="grammarScore">0 / 0 correctas</span>
+        <button class="primary" id="newGrammarQ" style="margin-left:auto;">Generar ejercicio nuevo</button>
+      </div>
+      <div id="grammarLoading" class="loading" style="display:none;"><span class="dot"></span> Generando ejercicio…</div>
+      <div id="grammarQuizArea"></div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 3: WRITING ============ -->
+  <section class="panel" id="panel-writing">
+    <div class="card">
+      <h2>Writing &mdash; redacción y corrección</h2>
+      <p class="hint">Generá una consigna estilo examen o email de trabajo, escribí tu respuesta y recibí corrección detallada con nivel estimado.</p>
+      <div class="row">
+        <div>
+          <label class="field-label">TIPO DE CONSIGNA</label>
+          <select id="writingType">
+            <option value="exam-essay">Essay de examen (C1/C2)</option>
+            <option value="work-email">Email profesional de trabajo</option>
+            <option value="report">Informe o resumen breve de trabajo</option>
+            <option value="formal-request">Carta/email formal (reclamo o solicitud)</option>
+            <option value="technical-explain">Explicación técnica para alguien no experto</option>
+          </select>
+        </div>
+        <button class="secondary" id="newWritingTask">Generar consigna</button>
+      </div>
+      <div id="taskLoading" class="loading" style="display:none;"><span class="dot"></span> Generando consigna…</div>
+      <div class="task-box" id="taskBox" style="display:none;"></div>
+      <textarea id="writingInput" placeholder="Escribí tu respuesta acá…"></textarea>
+      <div style="margin-top:12px;">
+        <button class="primary" id="correctWriting">Corregir</button>
+      </div>
+      <div id="writingLoading" class="loading" style="display:none;margin-top:10px;"><span class="dot"></span> Corrigiendo texto…</div>
+      <div id="writingFeedback"></div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 4: READING ============ -->
+  <section class="panel" id="panel-reading">
+    <div class="card">
+      <h2>Reading comprehension</h2>
+      <p class="hint">Textos breves de nivel avanzado (con temática técnica de vez en cuando) con preguntas de comprensión.</p>
+      <button class="primary" id="newReading">Generar lectura nueva</button>
+      <div id="readingLoading" class="loading" style="display:none;margin-top:12px;"><span class="dot"></span> Generando texto…</div>
+      <div id="readingArea" style="margin-top:16px;"></div>
+    </div>
+  </section>
+
+  <footer class="note">
+    El nivel CEFR mostrado es una estimación orientativa generada por IA para motivarte a practicar, no un resultado oficial de examen.
+  </footer>
+</div>
+
+<div class="buddy" id="buddy" title="Arrastrame para moverme, o hacé click para silenciarme">
+  <canvas id="buddyCanvas" width="64" height="64"></canvas>
+  <span class="zzz">zzz</span>
+</div>
+<div class="buddy-bubble" id="buddyBubble">
+  <p id="buddyBubbleText"></p>
+  <div class="bubble-actions">
+    <button id="buddyAction" style="display:none;"></button>
+    <button id="buddyClose">Gracias, seguí</button>
+    <button id="buddySnooze">Esperá un rato 🤫</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="apiModalOverlay">
+  <div class="modal-box">
+    <h3>Conectar la IA</h3>
+    <p class="hint">Elegí de dónde sale la inteligencia artificial de la app. Se guarda solo en tu navegador.</p>
+    <label class="field-label">PROVEEDOR</label>
+    <select id="providerSelect">
+      <option value="groq">Groq (gratis, rápido)</option>
+      <option value="cerebras">Cerebras (gratis, rápido)</option>
+      <option value="openrouter">OpenRouter (gratis, varios modelos)</option>
+      <option value="local">Local en el navegador (sin key, sin servidor)</option>
+      <option value="advanced">Avanzada: servidor local (Ollama, LM Studio, etc.)</option>
+    </select>
+
+    <div class="provider-panel" id="panel-groq">
+      <label class="field-label">API KEY DE GROQ</label>
+      <input type="text" id="groqKeyInput" placeholder="gsk_...">
+      <label class="field-label">MODELO</label>
+      <input type="text" id="groqModelInput" placeholder="openai/gpt-oss-120b">
+      <a class="modal-link" href="https://console.groq.com/keys" target="_blank" rel="noopener">Conseguir una key gratis en Groq →</a>
+    </div>
+
+    <div class="provider-panel" id="panel-cerebras">
+      <div class="provider-warning">⚠️ Desde agosto 2026, Cerebras pide cargar un método de pago para activar la cuenta (te da $5 de crédito gratis, no debería cobrarte si no lo superás). Si no querés cargar tarjeta en ningún lado, usá Groq, OpenRouter o la opción Local.</div>
+      <label class="field-label">API KEY DE CEREBRAS</label>
+      <input type="text" id="cerebrasKeyInput" placeholder="csk-...">
+      <label class="field-label">MODELO</label>
+      <input type="text" id="cerebrasModelInput" placeholder="llama3.1-8b">
+      <a class="modal-link" href="https://cloud.cerebras.ai" target="_blank" rel="noopener">Conseguir una key en Cerebras →</a>
+    </div>
+
+    <div class="provider-panel" id="panel-openrouter">
+      <div class="provider-warning">⚠️ Los modelos gratis de OpenRouter cambian seguido (algunos se dan de baja sin aviso). Si te tira 404, entrá al link de abajo, copiá el ID de cualquier modelo marcado "free" y pegalo en el campo Modelo.</div>
+      <label class="field-label">API KEY DE OPENROUTER</label>
+      <input type="text" id="openrouterKeyInput" placeholder="sk-or-...">
+      <label class="field-label">MODELO</label>
+      <input type="text" id="openrouterModelInput" placeholder="meta-llama/llama-3.3-70b-instruct:free">
+      <a class="modal-link" href="https://openrouter.ai/models?max_price=0" target="_blank" rel="noopener">Ver modelos gratis vigentes en OpenRouter →</a>
+    </div>
+
+    <div class="provider-panel" id="panel-local">
+      <div class="provider-warning">⚠️ Corre un modelo chico directo en tu navegador (no necesitás key ni internet después de la primera vez). Es mucho menos preciso que Groq/Cerebras/OpenRouter: para gramática, writing y lectura puede cometer errores o no devolver el formato esperado. La primera vez descarga el modelo (~400-600MB) y puede tardar. Funciona mejor en compu que en celular.</div>
+      <div id="localStatus" class="status-line"></div>
+      <button class="secondary" id="localLoadBtn" type="button">Descargar y cargar modelo local</button>
+    </div>
+
+    <div class="provider-panel" id="panel-advanced">
+      <div class="provider-warning">⚠️ Para tu propio servidor (Ollama, LM Studio, text-generation-webui, vLLM, etc.), corriendo en tu compu o en tu red. Si tu app está online (https) y el servidor es local, puede que el navegador bloquee la conexión por CORS — mirá la nota debajo.</div>
+      <label class="field-label">URL BASE (COMPATIBLE OPENAI)</label>
+      <input type="text" id="advancedUrlInput" placeholder="http://localhost:11434/v1">
+      <label class="field-label">MODELO</label>
+      <input type="text" id="advancedModelInput" placeholder="llama3.1">
+      <label class="field-label">API KEY (OPCIONAL, MUCHOS SERVIDORES LOCALES NO LA PIDEN)</label>
+      <input type="text" id="advancedKeyInput" placeholder="dejalo vacío si no aplica">
+      <div id="advancedStatus" class="status-line"></div>
+      <button class="secondary" id="advancedDetectBtn" type="button" style="margin-bottom:14px;">Detectar servidor</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="primary" id="saveApiKey">Guardar</button>
+      <button class="secondary" id="closeApiModal">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Configuración de proveedores de IA ----------
+// Modelos por defecto. Si alguno deja de funcionar (pasa seguido con los gratuitos),
+// se puede editar el campo "Modelo" directo en la app sin tocar código.
+const PROVIDER_DEFAULTS = {
+  groq: { model: "openai/gpt-oss-120b" },
+  cerebras: { model: "llama3.1-8b" },
+  openrouter: { model: "meta-llama/llama-3.3-70b-instruct:free" },
+  advanced: { url: "http://localhost:11434/v1", model: "llama3.1" }
+};
+// Modelo chico para correr 100% en el navegador con transformers.js (sin key, sin servidor)
+const LOCAL_MODEL_ID = "onnx-community/Qwen2.5-0.5B-Instruct";
+
+let AI_PROVIDER = "groq";
+let AI_SETTINGS = {
+  groq: { key: "", model: PROVIDER_DEFAULTS.groq.model },
+  cerebras: { key: "", model: PROVIDER_DEFAULTS.cerebras.model },
+  openrouter: { key: "", model: PROVIDER_DEFAULTS.openrouter.model },
+  advanced: { url: PROVIDER_DEFAULTS.advanced.url, model: PROVIDER_DEFAULTS.advanced.model, key: "" }
+};
+let localGenerator = null;
+let localLoading = false;
+
+// ---------- Storage con fallback: window.storage (dentro de claude.ai) o localStorage (navegador suelto) ----------
+function storageAvailable(){
+  return typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function';
+}
+async function storageGet(key, shared){
+  if(storageAvailable()){
+    try{ return await window.storage.get(key, !!shared); }catch(e){ return null; }
+  }
+  try{
+    const raw = localStorage.getItem(key);
+    return raw !== null ? {key, value:raw} : null;
+  }catch(e){ return null; }
+}
+async function storageSet(key, value, shared){
+  if(storageAvailable()){
+    try{ return await window.storage.set(key, value, !!shared); }catch(e){ return null; }
+  }
+  try{ localStorage.setItem(key, value); return {key, value}; }catch(e){ return null; }
+}
+
+function providerIsConfigured(p){
+  if(p === 'local') return true; // no requiere key; si falta cargar el modelo se avisa en el momento
+  if(p === 'advanced') return !!(AI_SETTINGS.advanced.url && AI_SETTINGS.advanced.model);
+  return !!(AI_SETTINGS[p] && AI_SETTINGS[p].key);
+}
+
+// ---------- Modelo local en el navegador (transformers.js), sin key ni servidor ----------
+async function loadLocalModel(){
+  const statusEl = document.getElementById('localStatus');
+  const btn = document.getElementById('localLoadBtn');
+  if(localGenerator){
+    statusEl.textContent = 'Modelo ya cargado ✓';
+    statusEl.className = 'status-line ok';
+    return;
+  }
+  if(localLoading) return;
+  localLoading = true;
+  if(btn) btn.disabled = true;
+  statusEl.className = 'status-line';
+  statusEl.textContent = 'Descargando modelo (puede tardar unos minutos la primera vez)...';
+  try{
+    const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
+    localGenerator = await pipeline('text-generation', LOCAL_MODEL_ID, {
+      dtype: 'q4',
+      progress_callback: (p)=>{
+        if(p && p.status === 'progress' && typeof p.progress === 'number'){
+          statusEl.textContent = `Descargando modelo... ${Math.round(p.progress)}%`;
+        }
+      }
+    });
+    statusEl.textContent = 'Modelo cargado y listo ✓';
+    statusEl.className = 'status-line ok';
+  }catch(e){
+    statusEl.textContent = 'No se pudo cargar el modelo local: ' + (e.message || e);
+    statusEl.className = 'status-line err';
+    localGenerator = null;
+  }
+  localLoading = false;
+  if(btn) btn.disabled = false;
+}
+
+async function callLocalModel(system, messages, maxTokens){
+  if(!localGenerator){
+    await loadLocalModel();
+    if(!localGenerator){
+      openApiModal();
+      throw new Error('El modelo local no está cargado. Abrí Configuración y tocá "Descargar y cargar modelo local".');
+    }
+  }
+  const chatMessages = [
+    { role: 'system', content: system },
+    ...messages.map(m=>({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
+  ];
+  const output = await localGenerator(chatMessages, { max_new_tokens: Math.min(maxTokens, 512), do_sample: false });
+  const last = output[0] && output[0].generated_text && output[0].generated_text.at(-1);
+  return (last && last.content) || '';
+}
+
+// ---------- Detección de servidor local avanzado (Ollama, LM Studio, etc.) ----------
+async function detectAdvancedServer(){
+  const statusEl = document.getElementById('advancedStatus');
+  const url = document.getElementById('advancedUrlInput').value.trim() || PROVIDER_DEFAULTS.advanced.url;
+  const base = url.replace(/\/+$/,'');
+  statusEl.className = 'status-line';
+  statusEl.textContent = 'Buscando servidor...';
+  try{
+    const res = await fetch(base + '/models', { method: 'GET' });
+    if(res.ok){
+      statusEl.textContent = 'Servidor encontrado ✓';
+      statusEl.className = 'status-line ok';
+      return;
+    }
+    throw new Error('HTTP ' + res.status);
+  }catch(e){
+    statusEl.textContent = 'No se encontró ahí. Revisá que esté prendido, la URL, y que permita conexiones desde el navegador (CORS) si tu app corre online.';
+    statusEl.className = 'status-line err';
+  }
+}
+
+// ---------- Llamada a la IA: rutea según el proveedor elegido ----------
+async function callClaude(system, messages, maxTokens=1000, jsonMode=false){
+  const provider = AI_PROVIDER;
+
+  if(provider === 'local'){
+    return await callLocalModel(system, messages, maxTokens);
+  }
+
+  if(!providerIsConfigured(provider)){
+    openApiModal();
+    throw new Error('Falta configurar la IA en Configuración.');
+  }
+
+  const chatMessages = [
+    { role: "system", content: system },
+    ...messages.map(m=>({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
+  ];
+
+  let url, headers, body;
+  if(provider === 'groq'){
+    url = "https://api.groq.com/openai/v1/chat/completions";
+    headers = { "Content-Type":"application/json", "Authorization": `Bearer ${AI_SETTINGS.groq.key}` };
+    body = { model: AI_SETTINGS.groq.model || PROVIDER_DEFAULTS.groq.model, messages: chatMessages, max_tokens: maxTokens, reasoning_effort: "low" };
+    if(jsonMode) body.response_format = { type: "json_object" };
+  } else if(provider === 'cerebras'){
+    url = "https://api.cerebras.ai/v1/chat/completions";
+    headers = { "Content-Type":"application/json", "Authorization": `Bearer ${AI_SETTINGS.cerebras.key}` };
+    body = { model: AI_SETTINGS.cerebras.model || PROVIDER_DEFAULTS.cerebras.model, messages: chatMessages, max_tokens: maxTokens };
+    if(jsonMode) body.response_format = { type: "json_object" };
+  } else if(provider === 'openrouter'){
+    url = "https://openrouter.ai/api/v1/chat/completions";
+    headers = { "Content-Type":"application/json", "Authorization": `Bearer ${AI_SETTINGS.openrouter.key}`, "HTTP-Referer": location.origin, "X-Title": "English Lab" };
+    body = { model: AI_SETTINGS.openrouter.model || PROVIDER_DEFAULTS.openrouter.model, messages: chatMessages, max_tokens: maxTokens };
+    if(jsonMode) body.response_format = { type: "json_object" };
+  } else if(provider === 'advanced'){
+    const base = (AI_SETTINGS.advanced.url || PROVIDER_DEFAULTS.advanced.url).replace(/\/+$/,'');
+    url = base + "/chat/completions";
+    headers = { "Content-Type":"application/json" };
+    if(AI_SETTINGS.advanced.key) headers["Authorization"] = `Bearer ${AI_SETTINGS.advanced.key}`;
+    body = { model: AI_SETTINGS.advanced.model || PROVIDER_DEFAULTS.advanced.model, messages: chatMessages, max_tokens: maxTokens };
+  }
+
+  const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
+  const data = await res.json();
+  if(data.error){
+    const msg = typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error));
+    throw new Error(`${msg} (proveedor: ${provider})`);
+  }
+  const text = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+  return text;
+}
+
+function parseJsonLoose(text){
+  const cleaned = text.replace(/```json/g,"").replace(/```/g,"").trim();
+  return JSON.parse(cleaned);
+}
+
+// ---------- Modal de configuración ----------
+async function loadApiKey(){
+  const blob = await storageGet('ai_settings_v2', false);
+  if(blob && blob.value){
+    try{
+      const parsed = JSON.parse(blob.value);
+      AI_PROVIDER = parsed.provider || 'groq';
+      ['groq','cerebras','openrouter'].forEach(p=>{
+        if(parsed[p]){
+          AI_SETTINGS[p].key = parsed[p].key || '';
+          AI_SETTINGS[p].model = parsed[p].model || PROVIDER_DEFAULTS[p].model;
+        }
+      });
+      if(parsed.advanced){
+        AI_SETTINGS.advanced.url = parsed.advanced.url || PROVIDER_DEFAULTS.advanced.url;
+        AI_SETTINGS.advanced.model = parsed.advanced.model || PROVIDER_DEFAULTS.advanced.model;
+        AI_SETTINGS.advanced.key = parsed.advanced.key || '';
+      }
+    }catch(e){}
+  } else {
+    // Migración desde una versión anterior de la app que solo tenía Groq
+    const old = await storageGet('groq_api_key', false);
+    if(old && old.value){
+      AI_SETTINGS.groq.key = old.value;
+      AI_PROVIDER = 'groq';
+    }
+  }
+  updateApiKeyBanner();
+}
+async function saveApiSettings(){
+  AI_PROVIDER = document.getElementById('providerSelect').value;
+  AI_SETTINGS.groq.key = document.getElementById('groqKeyInput').value.trim();
+  AI_SETTINGS.groq.model = document.getElementById('groqModelInput').value.trim() || PROVIDER_DEFAULTS.groq.model;
+  AI_SETTINGS.cerebras.key = document.getElementById('cerebrasKeyInput').value.trim();
+  AI_SETTINGS.cerebras.model = document.getElementById('cerebrasModelInput').value.trim() || PROVIDER_DEFAULTS.cerebras.model;
+  AI_SETTINGS.openrouter.key = document.getElementById('openrouterKeyInput').value.trim();
+  AI_SETTINGS.openrouter.model = document.getElementById('openrouterModelInput').value.trim() || PROVIDER_DEFAULTS.openrouter.model;
+  AI_SETTINGS.advanced.url = document.getElementById('advancedUrlInput').value.trim() || PROVIDER_DEFAULTS.advanced.url;
+  AI_SETTINGS.advanced.model = document.getElementById('advancedModelInput').value.trim() || PROVIDER_DEFAULTS.advanced.model;
+  AI_SETTINGS.advanced.key = document.getElementById('advancedKeyInput').value.trim();
+  await storageSet('ai_settings_v2', JSON.stringify({
+    provider: AI_PROVIDER,
+    groq: AI_SETTINGS.groq,
+    cerebras: AI_SETTINGS.cerebras,
+    openrouter: AI_SETTINGS.openrouter,
+    advanced: AI_SETTINGS.advanced
+  }), false);
+  updateApiKeyBanner();
+}
+function updateApiKeyBanner(){
+  const banner = document.getElementById('apiBanner');
+  if(banner) banner.style.display = providerIsConfigured(AI_PROVIDER) ? 'none' : 'flex';
+}
+function switchProviderPanel(p){
+  document.querySelectorAll('.provider-panel').forEach(el=>el.classList.remove('active'));
+  const panel = document.getElementById('panel-' + p);
+  if(panel) panel.classList.add('active');
+}
+function openApiModal(){
+  document.getElementById('providerSelect').value = AI_PROVIDER;
+  document.getElementById('groqKeyInput').value = AI_SETTINGS.groq.key;
+  document.getElementById('groqModelInput').value = AI_SETTINGS.groq.model || PROVIDER_DEFAULTS.groq.model;
+  document.getElementById('cerebrasKeyInput').value = AI_SETTINGS.cerebras.key;
+  document.getElementById('cerebrasModelInput').value = AI_SETTINGS.cerebras.model || PROVIDER_DEFAULTS.cerebras.model;
+  document.getElementById('openrouterKeyInput').value = AI_SETTINGS.openrouter.key;
+  document.getElementById('openrouterModelInput').value = AI_SETTINGS.openrouter.model || PROVIDER_DEFAULTS.openrouter.model;
+  document.getElementById('advancedUrlInput').value = AI_SETTINGS.advanced.url || PROVIDER_DEFAULTS.advanced.url;
+  document.getElementById('advancedModelInput').value = AI_SETTINGS.advanced.model || PROVIDER_DEFAULTS.advanced.model;
+  document.getElementById('advancedKeyInput').value = AI_SETTINGS.advanced.key;
+  const localStatusEl = document.getElementById('localStatus');
+  localStatusEl.textContent = localGenerator ? 'Modelo cargado y listo ✓' : '';
+  localStatusEl.className = localGenerator ? 'status-line ok' : 'status-line';
+  const advStatusEl = document.getElementById('advancedStatus');
+  advStatusEl.textContent = '';
+  advStatusEl.className = 'status-line';
+  switchProviderPanel(AI_PROVIDER);
+  document.getElementById('apiModalOverlay').classList.add('show');
+}
+function closeApiModal(){
+  document.getElementById('apiModalOverlay').classList.remove('show');
+}
+document.getElementById('providerSelect').addEventListener('change', (e)=> switchProviderPanel(e.target.value));
+document.getElementById('openApiModal').addEventListener('click', openApiModal);
+document.getElementById('apiBannerBtn').addEventListener('click', openApiModal);
+document.getElementById('closeApiModal').addEventListener('click', closeApiModal);
+document.getElementById('apiModalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'apiModalOverlay') closeApiModal();
+});
+document.getElementById('saveApiKey').addEventListener('click', async ()=>{
+  await saveApiSettings();
+  closeApiModal();
+});
+document.getElementById('localLoadBtn').addEventListener('click', loadLocalModel);
+document.getElementById('advancedDetectBtn').addEventListener('click', detectAdvancedServer);
+
+
+// ---------- Progress storage ----------
+let progress = { grammar:{correct:0,total:0}, writing:{count:0,lastScore:null}, reading:{correct:0,total:0}, conversation:{turns:0} };
+
+async function loadProgress(){
+  try{
+    const r = await storageGet('progress', false);
+    if(r && r.value) progress = JSON.parse(r.value);
+  }catch(e){ /* no data yet */ }
+  updateSeal();
+}
+async function saveProgress(){
+  try{ await storageSet('progress', JSON.stringify(progress), false); }catch(e){ console.error(e); }
+  updateSeal();
+}
+
+// ---------- Perfil de aprendizaje: para que la IA corrija y sugiera con memoria real de tus patrones ----------
+let learnerProfile = { mistakeCategories: {}, vocabStruggles: [], levelEstimate: null, updatedAt: null };
+
+async function loadLearnerProfile(){
+  try{
+    const r = await storageGet('learner_profile', false);
+    if(r && r.value) learnerProfile = Object.assign({ mistakeCategories:{}, vocabStruggles:[], levelEstimate:null, updatedAt:null }, JSON.parse(r.value));
+  }catch(e){ /* sin datos todavía */ }
+  renderWeakAreas();
+}
+async function saveLearnerProfile(){
+  learnerProfile.updatedAt = Date.now();
+  try{ await storageSet('learner_profile', JSON.stringify(learnerProfile), false); }catch(e){ console.error(e); }
+  renderWeakAreas();
+}
+function recordMistakeCategory(category){
+  if(!category) return;
+  const key = category.trim().toLowerCase();
+  if(!key) return;
+  learnerProfile.mistakeCategories[key] = (learnerProfile.mistakeCategories[key] || 0) + 1;
+  saveLearnerProfile();
+}
+function recordVocabStruggle(word){
+  if(!word) return;
+  const w = word.trim().toLowerCase();
+  if(!w || learnerProfile.vocabStruggles.includes(w)) return;
+  learnerProfile.vocabStruggles.push(w);
+  if(learnerProfile.vocabStruggles.length > 40) learnerProfile.vocabStruggles.shift();
+  saveLearnerProfile();
+}
+function recordLevelEstimate(level){
+  if(!level) return;
+  learnerProfile.levelEstimate = level;
+  saveLearnerProfile();
+}
+function topWeakCategories(n){
+  return Object.entries(learnerProfile.mistakeCategories)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0, n)
+    .map(([cat])=>cat);
+}
+// Resumen compacto para inyectar en los prompts de la IA, así corrige/sugiere con el historial real del usuario
+function buildProfileSummary(){
+  const weak = topWeakCategories(5);
+  const parts = [];
+  if(learnerProfile.levelEstimate) parts.push(`Nivel estimado actual: ${learnerProfile.levelEstimate}.`);
+  if(weak.length) parts.push(`Áreas donde el estudiante viene fallando más seguido (dales prioridad, sin ser repetitivo ni exclusivo): ${weak.join(', ')}.`);
+  if(learnerProfile.vocabStruggles.length) parts.push(`Palabras/expresiones que le costaron antes (podés reforzarlas de vez en cuando en contexto): ${learnerProfile.vocabStruggles.slice(-12).join(', ')}.`);
+  return parts.length ? parts.join(' ') : '';
+}
+function renderWeakAreas(){
+  const el = document.getElementById('weakAreas');
+  if(!el) return;
+  const weak = topWeakCategories(3);
+  if(!weak.length && !learnerProfile.levelEstimate){
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = 'flex';
+  el.innerHTML = '';
+  if(learnerProfile.levelEstimate){
+    const lvl = document.createElement('span');
+    lvl.className = 'weak-chip';
+    lvl.textContent = 'Nivel: ' + learnerProfile.levelEstimate;
+    el.appendChild(lvl);
+  }
+  weak.forEach(cat=>{
+    const chip = document.createElement('span');
+    chip.className = 'weak-chip';
+    chip.textContent = cat;
+    el.appendChild(chip);
+  });
+  const reset = document.createElement('button');
+  reset.className = 'weak-reset';
+  reset.textContent = 'reiniciar';
+  reset.title = 'Borra tu perfil de aprendizaje acumulado';
+  reset.onclick = async ()=>{
+    learnerProfile = { mistakeCategories:{}, vocabStruggles:[], levelEstimate:null, updatedAt:null };
+    await saveLearnerProfile();
+  };
+  el.appendChild(reset);
+}
+
+
+function updateSeal(){
+  const g = progress.grammar.total ? progress.grammar.correct/progress.grammar.total : null;
+  const r = progress.reading.total ? progress.reading.correct/progress.reading.total : null;
+  const w = progress.writing.lastScore!==null ? progress.writing.lastScore/100 : null;
+  const vals = [g,r,w].filter(v=>v!==null);
+  const pctEl = document.getElementById('sealPct');
+  const lvlEl = document.getElementById('sealLevel');
+  if(vals.length===0){ pctEl.textContent="SIN DATOS"; lvlEl.textContent="–"; return; }
+  const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
+  const pct = Math.round(avg*100);
+  let level = "B1";
+  if(pct>=90) level="C2"; else if(pct>=75) level="C1"; else if(pct>=55) level="B2"; else level="B1";
+  lvlEl.textContent = level;
+  pctEl.textContent = pct + "%";
+}
+
+// ---------- Tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(btn.dataset.tab !== 'conversation' && typeof liveMode !== 'undefined' && liveMode){
+      liveMode = false;
+      setLiveModeUI(false);
+      stopLiveListening();
+    }
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// =====================================================
+// TAB 1: CONVERSATION
+// =====================================================
+let convHistory = [];
+const contextLabels = {
+  exam: "Entrevista de examen oral (Cambridge/IELTS/TOEFL style)",
+  meeting: "Reunión de trabajo general (cualquier rubro)",
+  colleague: "Conversación de trabajo con un colega",
+  client: "Llamada de trabajo con un cliente",
+  technical: "Conversación sobre un tema técnico o especializado",
+  daily: "Vida cotidiana: viajes, compras, charla informal"
+};
+
+function convSystemPrompt(){
+  const ctx = contextLabels[document.getElementById('convContext').value];
+  const profile = buildProfileSummary();
+  return `Sos un compañero de práctica de inglés avanzado (nivel C1-C2) para una persona hispanohablante que se prepara para un examen oral avanzado y para usar inglés en su vida profesional y cotidiana, en cualquier rubro o industria (no asumas que trabaja en tecnología salvo que ella lo mencione). Además de conversar, tu rol es CORREGIR de forma directa y pedagógica — como un profesor exigente pero constructivo — porque la persona está acá específicamente para aprender, no solo para charlar.
+Contexto actual de la conversación: ${ctx}.
+${profile ? `Datos previos de este estudiante (usalos para orientar tus preguntas y detectar mejor sus errores típicos, sin mencionarlos explícitamente): ${profile}\n` : ''}Reglas:
+- Respondé SIEMPRE en inglés, de forma natural, con preguntas de seguimiento como lo haría un examinador real o un colega real en ese contexto. Nunca dejes de seguir la conversación con naturalidad, incluso cuando el usuario cometió un error: primero continuá la charla, la corrección va aparte.
+- Mantené las respuestas breves (2-4 oraciones), como una conversación real, no un ensayo.
+- Si el usuario comete un error gramatical, de vocabulario, de expresión o de registro notable, agregá DESPUÉS de tu respuesta tres líneas nuevas, exactamente con este formato:
+CORRECTION: explicación breve y directa EN ESPAÑOL de cuál fue el error y por qué está mal. Sé claro y concreto, como corrigiendo a alguien que necesita entender el error para no repetirlo.
+BETTER: la oración del usuario reescrita en un inglés natural/nativo, seguida de " — " y una explicación breve EN ESPAÑOL de por qué esa forma suena mejor (registro, naturalidad, colocación de palabras, etc).
+CATEGORY: categoría breve en español del error, ej: "tiempos verbales", "preposiciones", "artículos", "phrasal verbs", "registro", "vocabulario", "orden de palabras".
+- Si no hay errores notables en gramática/vocabulario/expresión, no agregues esas tres líneas.
+- SIEMPRE, en TODAS tus respuestas sin excepción, evaluá además si lo que el usuario acaba de escribir es coherente con el tema que se venía hablando (responde lo que se le preguntó, sigue el hilo del tema, o es un cambio de tema razonable dentro de una charla natural) o si es incoherente, evasivo, no tiene relación con lo que se venía hablando, o cambia de tema de forma abrupta sin sentido. Agregá SIEMPRE una línea nueva, exactamente con este formato, en TODAS las respuestas:
+COHERENCE: SI — si la respuesta del usuario tuvo sentido y siguió el hilo de la conversación.
+COHERENCE: NO — explicación breve EN ESPAÑOL de por qué no fue coherente o de qué tema se desvió, seguida de " — " y una sugerencia concreta EN INGLÉS de qué podría haber dicho en cambio para seguir la conversación con sentido.
+- Esta línea COHERENCE es obligatoria siempre, no la omitas nunca, incluso cuando la respuesta del usuario sí fue coherente (en ese caso poné SI).
+- No uses markdown ni asteriscos.`;
+}
+
+function appendMsg(role, text, correction, better, incoherent, note){
+  const log = document.getElementById('chatLog');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = text;
+  if(role === 'ai' && window.speechSynthesis){
+    const speakBtn = document.createElement('button');
+    speakBtn.className = 'speak-btn';
+    speakBtn.type = 'button';
+    speakBtn.textContent = '🔊 Escuchar';
+    speakBtn.onclick = ()=> speakText(text);
+    div.appendChild(speakBtn);
+  }
+  if(correction){
+    const c = document.createElement('div');
+    c.className = 'correction';
+    c.textContent = '💡 ' + correction;
+    if(better){
+      const b = document.createElement('span');
+      b.className = 'better';
+      b.textContent = '✓ ' + better;
+      c.appendChild(b);
+    }
+    div.appendChild(c);
+  }
+  if(incoherent && note){
+    const n = document.createElement('div');
+    n.className = 'coherence-flag';
+    n.textContent = '🤔 ' + note;
+    div.appendChild(n);
+  }
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function parseConvReply(reply){
+  const markers = ['CORRECTION:', 'BETTER:', 'CATEGORY:', 'COHERENCE:'];
+  let positions = [];
+  markers.forEach(m=>{
+    const idx = reply.indexOf(m);
+    if(idx !== -1) positions.push({marker:m, idx});
+  });
+  positions.sort((a,b)=>a.idx-b.idx);
+  const mainText = positions.length ? reply.slice(0, positions[0].idx).trim() : reply.trim();
+  const result = { mainText, correction:null, better:null, category:null, incoherent:false, note:null };
+  positions.forEach((p, i)=>{
+    const start = p.idx + p.marker.length;
+    const end = i+1 < positions.length ? positions[i+1].idx : reply.length;
+    const text = reply.slice(start, end).trim();
+    if(p.marker === 'CORRECTION:') result.correction = text;
+    if(p.marker === 'BETTER:') result.better = text;
+    if(p.marker === 'CATEGORY:') result.category = text;
+    if(p.marker === 'COHERENCE:'){
+      const isNo = /^no\b/i.test(text);
+      result.incoherent = isNo;
+      if(isNo) result.note = text.replace(/^no\s*[—\-:]*\s*/i, '').trim();
+    }
+  });
+  return result;
+}
+
+// ---------- Voz: dictado por micrófono y lectura en voz alta (Web Speech API, nativo del navegador, sin key) ----------
+let speechRecognizer = null;
+let isListening = false;
+let speakEnabled = false;
+
+function speechRecognitionSupported(){
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+function initMicButton(){
+  const micBtn = document.getElementById('micBtn');
+  if(!micBtn) return;
+  if(!speechRecognitionSupported()){
+    micBtn.classList.add('unsupported');
+    micBtn.title = 'Tu navegador no soporta dictado por voz (probá con Chrome o Edge)';
+    return;
+  }
+  micBtn.addEventListener('click', toggleMic);
+}
+
+function toggleMic(){
+  const micBtn = document.getElementById('micBtn');
+  const input = document.getElementById('chatInput');
+  if(isListening){
+    if(speechRecognizer) speechRecognizer.stop();
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  speechRecognizer = new SR();
+  speechRecognizer.lang = 'en-US';
+  speechRecognizer.continuous = false;
+  speechRecognizer.interimResults = true;
+  speechRecognizer.maxAlternatives = 1;
+  const baseText = input.value.trim();
+  isListening = true;
+  micBtn.classList.add('listening');
+  buddyLastActivity = Date.now();
+
+  speechRecognizer.onresult = (e)=>{
+    let interim = '', final = '';
+    for(let i = e.resultIndex; i < e.results.length; i++){
+      const transcript = e.results[i][0].transcript;
+      if(e.results[i].isFinal) final += transcript;
+      else interim += transcript;
+    }
+    input.value = (baseText ? baseText + ' ' : '') + final + interim;
+    input.dispatchEvent(new Event('input')); // así el asistente también "nota" que se está escribiendo
+  };
+  speechRecognizer.onerror = ()=>{
+    isListening = false;
+    micBtn.classList.remove('listening');
+  };
+  speechRecognizer.onend = ()=>{
+    isListening = false;
+    micBtn.classList.remove('listening');
+  };
+  speechRecognizer.start();
+}
+
+function pickEnglishVoice(){
+  if(!window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  return voices.find(v => v.lang && v.lang.startsWith('en') && /US|GB/i.test(v.lang))
+    || voices.find(v => v.lang && v.lang.startsWith('en'))
+    || null;
+}
+
+function speakText(text, onEnd){
+  if(!window.speechSynthesis || !text){ if(onEnd) onEnd(); return; }
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'en-US';
+  const voice = pickEnglishVoice();
+  if(voice) utter.voice = voice;
+  utter.rate = 0.98;
+  if(onEnd){
+    utter.onend = onEnd;
+    utter.onerror = onEnd;
+  }
+  window.speechSynthesis.speak(utter);
+}
+
+async function loadSpeakPref(){
+  const toggle = document.getElementById('speakToggle');
+  if(!window.speechSynthesis){
+    if(toggle){ toggle.disabled = true; toggle.parentElement.title = 'Tu navegador no soporta lectura en voz alta'; }
+    return;
+  }
+  try{
+    const r = await storageGet('speak_enabled', false);
+    speakEnabled = r && r.value === '1';
+  }catch(e){ /* sin preferencia guardada aún */ }
+  if(toggle) toggle.checked = speakEnabled;
+}
+
+const speakToggleEl = document.getElementById('speakToggle');
+if(speakToggleEl){
+  speakToggleEl.addEventListener('change', async (e)=>{
+    speakEnabled = e.target.checked;
+    if(!speakEnabled && window.speechSynthesis) window.speechSynthesis.cancel();
+    try{ await storageSet('speak_enabled', speakEnabled ? '1' : '0', false); }catch(err){}
+  });
+}
+initMicButton();
+
+// ---------- Modo "Charla en vivo": escucha, envía sola, lee la respuesta, y vuelve a escuchar ----------
+let liveMode = false;
+let liveModeSpeaking = false;
+
+function setLiveModeUI(active){
+  const btn = document.getElementById('liveModeBtn');
+  if(!btn) return;
+  btn.textContent = active ? '⏹ Terminar charla en vivo' : '🎙️ Charla en vivo';
+  btn.classList.toggle('live-active', active);
+}
+
+function toggleLiveMode(){
+  if(!speechRecognitionSupported()){
+    alert('Tu navegador no soporta dictado por voz (probá con Chrome o Edge) — necesario para la charla en vivo.');
+    return;
+  }
+  liveMode = !liveMode;
+  setLiveModeUI(liveMode);
+  if(liveMode){
+    startLiveListening();
+  } else {
+    stopLiveListening();
+  }
+}
+
+function startLiveListening(){
+  if(!liveMode || isListening || liveModeSpeaking) return;
+  const micBtn = document.getElementById('micBtn');
+  const input = document.getElementById('chatInput');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  speechRecognizer = new SR();
+  speechRecognizer.lang = 'en-US';
+  speechRecognizer.continuous = false;
+  speechRecognizer.interimResults = true;
+  speechRecognizer.maxAlternatives = 1;
+  input.value = '';
+  isListening = true;
+  micBtn.classList.add('listening');
+  buddyLastActivity = Date.now();
+
+  speechRecognizer.onresult = (e)=>{
+    let interim = '', final = '';
+    for(let i = e.resultIndex; i < e.results.length; i++){
+      const transcript = e.results[i][0].transcript;
+      if(e.results[i].isFinal) final += transcript;
+      else interim += transcript;
+    }
+    input.value = final + interim;
+    input.dispatchEvent(new Event('input'));
+  };
+  speechRecognizer.onerror = (e)=>{
+    isListening = false;
+    micBtn.classList.remove('listening');
+    if(liveMode && e.error !== 'not-allowed' && e.error !== 'aborted'){
+      setTimeout(()=>{ if(liveMode) startLiveListening(); }, 900);
+    }
+  };
+  speechRecognizer.onend = ()=>{
+    isListening = false;
+    micBtn.classList.remove('listening');
+    if(!liveMode) return;
+    const text = input.value.trim();
+    if(text.length > 1){
+      sendChatMessage(); // en charla en vivo, se envía solo apenas termina de hablar
+    } else {
+      setTimeout(()=>{ if(liveMode && !liveModeSpeaking) startLiveListening(); }, 500);
+    }
+  };
+  speechRecognizer.start();
+}
+
+function stopLiveListening(){
+  if(speechRecognizer && isListening) speechRecognizer.stop();
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  liveModeSpeaking = false;
+  const micBtn = document.getElementById('micBtn');
+  if(micBtn) micBtn.classList.remove('listening');
+}
+
+const liveModeBtnEl = document.getElementById('liveModeBtn');
+if(liveModeBtnEl) liveModeBtnEl.addEventListener('click', toggleLiveMode);
+
+async function sendChatMessage(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  appendMsg('user', text);
+  convHistory.push({role:"user", content:text});
+  input.value = '';
+  document.getElementById('sendChat').disabled = true;
+  document.getElementById('convLoading').style.display = 'flex';
+  try{
+    const reply = await callClaude(convSystemPrompt(), convHistory, 1200);
+    const parsed = parseConvReply(reply);
+    appendMsg('ai', parsed.mainText, parsed.correction, parsed.better, parsed.incoherent, parsed.note);
+    if(liveMode){
+      liveModeSpeaking = true;
+      speakText(parsed.mainText, ()=>{
+        liveModeSpeaking = false;
+        if(liveMode) startLiveListening();
+      });
+    } else if(speakEnabled){
+      speakText(parsed.mainText);
+    }
+    if(parsed.correction) recordMistakeCategory(parsed.category);
+    if(parsed.incoherent) buddyReactCringe();
+    else if(!parsed.correction) buddyCelebrate('conversation');
+    convHistory.push({role:"assistant", content:reply});
+    progress.conversation.turns++;
+    saveProgress();
+  }catch(e){
+    appendMsg('system', 'Error al conectar con la IA. Intentá de nuevo.');
+    if(liveMode) setTimeout(()=>{ if(liveMode) startLiveListening(); }, 800);
+  }
+  document.getElementById('sendChat').disabled = false;
+  document.getElementById('convLoading').style.display = 'none';
+}
+
+document.getElementById('sendChat').addEventListener('click', sendChatMessage);
+document.getElementById('chatInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendChatMessage(); }
+});
+document.getElementById('resetConv').addEventListener('click', ()=>{
+  convHistory = [];
+  document.getElementById('chatLog').innerHTML = '';
+  appendMsg('system', 'Conversación reiniciada — contexto: ' + document.getElementById('convContext').selectedOptions[0].text);
+});
+document.getElementById('convContext').addEventListener('change', ()=>{
+  document.getElementById('resetConv').click();
+});
+// initial system message
+appendMsg('system', 'Contexto: ' + document.getElementById('convContext').selectedOptions[0].text + ' — escribí algo para empezar.');
+
+// =====================================================
+// TAB 2: GRAMMAR
+// =====================================================
+function grammarSystemPrompt(){
+  const profile = buildProfileSummary();
+  return `Generá UN ejercicio de "Use of English" de nivel avanzado (C1-C2), en inglés, para una persona hispanohablante que se prepara para un examen avanzado y para usar inglés en su vida profesional y cotidiana. Puede ser opción múltiple, transformación de oración o vocabulario en contexto. Variá el tipo y el tema entre llamadas: a veces vocabulario de trabajo/oficina en general, a veces de la vida diaria, a veces de algún área técnica o profesional (no siempre la misma), a veces general/académico.
+${profile ? `Datos del estudiante (usalos para elegir mejor el enfoque del ejercicio, sin ser repetitivo): ${profile}\n` : ''}Respondé ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, con esta forma exacta:
+{"question":"...","options":["...","...","...","..."],"answer":"texto exacto de la opción correcta","explanation":"en español: por qué la opción correcta funciona Y por qué las otras opciones son tentadoras pero incorrectas","example":"una oración natural adicional en inglés que muestra la forma correcta usada en otro contexto","topic":"categoría gramatical/de vocabulario breve en español de este ejercicio, ej: 'tiempos verbales', 'preposiciones', 'artículos', 'phrasal verbs', 'condicionales', 'voz pasiva', 'vocabulario de negocios', etc."}
+Siempre debe tener exactamente 4 opciones, aunque el ejercicio sea de transformación (formulalo como opción múltiple igual).`;
+}
+
+async function loadGrammarQuestion(){
+  const area = document.getElementById('grammarQuizArea');
+  const loading = document.getElementById('grammarLoading');
+  const btn = document.getElementById('newGrammarQ');
+  btn.disabled = true;
+  loading.style.display = 'flex';
+  area.innerHTML = '';
+  try{
+    const raw = await callClaude(grammarSystemPrompt(), [{role:"user", content:"Generá el ejercicio."}], 1200, true);
+    const q = parseJsonLoose(raw);
+    renderGrammarQuestion(q);
+  }catch(e){
+    area.innerHTML = '<p class="hint">Error generando el ejercicio. Probá de nuevo.</p>';
+  }
+  loading.style.display = 'none';
+  btn.disabled = false;
+}
+
+function renderGrammarQuestion(q){
+  const area = document.getElementById('grammarQuizArea');
+  area.innerHTML = '';
+  const qDiv = document.createElement('div');
+  qDiv.className = 'quiz-question';
+  qDiv.textContent = q.question;
+  area.appendChild(qDiv);
+
+  const optsDiv = document.createElement('div');
+  optsDiv.className = 'options';
+  q.options.forEach(opt=>{
+    const b = document.createElement('button');
+    b.className = 'opt-btn';
+    b.textContent = opt;
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('.opt-btn').forEach(o=>o.disabled = true);
+      const correct = opt === q.answer;
+      b.classList.add(correct ? 'correct' : 'incorrect');
+      if(!correct){
+        document.querySelectorAll('.opt-btn').forEach(o=>{ if(o.textContent === q.answer) o.classList.add('correct'); });
+      }
+      progress.grammar.total++;
+      if(correct){ progress.grammar.correct++; buddyCelebrate('grammar'); }
+      else { recordMistakeCategory(q.topic); }
+      document.getElementById('grammarScore').textContent = `${progress.grammar.correct} / ${progress.grammar.total} correctas`;
+      saveProgress();
+      const expl = document.createElement('div');
+      expl.className = 'explanation';
+      expl.textContent = q.explanation;
+      if(q.example){
+        const ex = document.createElement('div');
+        ex.style.marginTop = '8px';
+        ex.style.color = 'var(--gold-300)';
+        ex.style.fontStyle = 'italic';
+        ex.textContent = '✎ ' + q.example;
+        expl.appendChild(ex);
+      }
+      area.appendChild(expl);
+    });
+    optsDiv.appendChild(b);
+  });
+  area.appendChild(optsDiv);
+}
+
+document.getElementById('newGrammarQ').addEventListener('click', loadGrammarQuestion);
+
+// =====================================================
+// TAB 3: WRITING
+// =====================================================
+const writingTypeLabels = {
+  "exam-essay": "essay argumentativo de examen C1/C2 (220-260 palabras)",
+  "work-email": "email profesional de trabajo, de cualquier rubro (120-180 palabras)",
+  "report": "informe o resumen breve de trabajo (150-200 palabras)",
+  "formal-request": "carta o email formal de reclamo o solicitud, de la vida cotidiana o laboral (120-170 palabras)",
+  "technical-explain": "explicación de un tema técnico o especializado (de cualquier área, elegí una al azar) dirigida a alguien sin conocimientos previos (150-200 palabras)"
+};
+let currentWritingTask = null;
+
+async function generateWritingTask(){
+  const btn = document.getElementById('newWritingTask');
+  const loading = document.getElementById('taskLoading');
+  const box = document.getElementById('taskBox');
+  btn.disabled = true;
+  loading.style.display = 'flex';
+  box.style.display = 'none';
+  const typeKey = document.getElementById('writingType').value;
+  const system = `Generá UNA consigna de writing en inglés de nivel avanzado para una persona hispanohablante que se prepara para un examen avanzado y para usar inglés en su vida profesional y cotidiana, en cualquier rubro (no asumas que trabaja en tecnología salvo que el tipo de consigna lo pida explícitamente). Tipo: ${writingTypeLabels[typeKey]}. Respondé solo con el texto de la consigna en inglés, sin comillas, sin markdown, sin explicaciones adicionales, máximo 3 oraciones.`;
+  try{
+    const task = await callClaude(system, [{role:"user", content:"Generá la consigna."}], 600);
+    currentWritingTask = task.trim();
+    box.textContent = currentWritingTask;
+    box.style.display = 'block';
+  }catch(e){
+    box.textContent = 'Error generando la consigna. Probá de nuevo.';
+    box.style.display = 'block';
+  }
+  loading.style.display = 'none';
+  btn.disabled = false;
+}
+
+function writingCorrectionSystemPrompt(){
+  const profile = buildProfileSummary();
+  return `Sos un corrector de inglés experto que evalúa textos de una persona hispanohablante que se prepara para un examen avanzado (C1/C2) y para usar inglés en su vida profesional y cotidiana, de cualquier rubro.
+${profile ? `Datos previos de este estudiante (tenelos en cuenta al corregir y en el resumen, sin repetirlos textualmente): ${profile}\n` : ''}Respondé ÚNICAMENTE con un objeto JSON válido, sin markdown, con esta forma exacta:
+{"level_estimate":"B1|B2|C1|C2","score_percent":0-100,"summary":"resumen breve en español del desempeño general","strengths":["...","..."],"errors":[{"original":"fragmento original con el error","correction":"fragmento corregido","explanation":"explicación en español de por qué era un error Y por qué la versión corregida suena más natural/nativa","category":"categoría breve en español del error, ej: 'tiempos verbales', 'preposiciones', 'artículos', 'orden de palabras', 'registro', 'vocabulario', 'concordancia', etc."}],"improved_version":"el texto completo del estudiante reescrito en un inglés natural y pulido, nivel C1/C2, conservando su idea y estructura general"}
+Incluí como máximo 5 errores, los más relevantes. Si el texto no tiene errores notables, dejá "errors" como un array vacío pero igual completá "improved_version" con una variante más pulida/natural.`;
+}
+
+async function correctWriting(){
+  const text = document.getElementById('writingInput').value.trim();
+  if(!text){ return; }
+  const loading = document.getElementById('writingLoading');
+  const feedbackDiv = document.getElementById('writingFeedback');
+  const btn = document.getElementById('correctWriting');
+  btn.disabled = true;
+  loading.style.display = 'flex';
+  feedbackDiv.innerHTML = '';
+  try{
+    const userMsg = (currentWritingTask ? `Consigna: ${currentWritingTask}\n\n` : '') + `Texto del estudiante:\n${text}`;
+    const raw = await callClaude(writingCorrectionSystemPrompt(), [{role:"user", content:userMsg}], 1800, true);
+    const fb = parseJsonLoose(raw);
+    renderWritingFeedback(fb);
+    progress.writing.count++;
+    progress.writing.lastScore = fb.score_percent;
+    saveProgress();
+    if(fb.level_estimate) recordLevelEstimate(fb.level_estimate);
+    if(Array.isArray(fb.errors)) fb.errors.forEach(er => recordMistakeCategory(er.category));
+    if(fb.score_percent >= 80) buddyCelebrate('writing', 'writing_good');
+    else buddyCelebrate('writing', 'writing_soft');
+  }catch(e){
+    feedbackDiv.innerHTML = '<p class="hint">Error al corregir el texto. Probá de nuevo.</p>';
+  }
+  loading.style.display = 'none';
+  btn.disabled = false;
+}
+
+function renderWritingFeedback(fb){
+  const div = document.getElementById('writingFeedback');
+  div.innerHTML = '';
+  const block = document.createElement('div');
+  block.className = 'feedback-block';
+
+  const head = document.createElement('div');
+  const levelBadge = document.createElement('span');
+  levelBadge.className = 'level-badge';
+  levelBadge.textContent = fb.level_estimate + ' · ' + fb.score_percent + '%';
+  head.appendChild(levelBadge);
+  const summary = document.createElement('span');
+  summary.textContent = fb.summary;
+  summary.style.fontSize = '13.5px';
+  summary.style.color = 'var(--muted)';
+  head.appendChild(summary);
+  block.appendChild(head);
+
+  if(fb.strengths && fb.strengths.length){
+    const h3 = document.createElement('h3'); h3.textContent = 'Puntos fuertes'; block.appendChild(h3);
+    const ul = document.createElement('ul');
+    fb.strengths.forEach(s=>{ const li=document.createElement('li'); li.textContent=s; li.style.fontSize='13.5px'; li.style.color='var(--ink)'; ul.appendChild(li); });
+    block.appendChild(ul);
+  }
+  if(fb.errors && fb.errors.length){
+    const h3 = document.createElement('h3'); h3.textContent = 'Correcciones'; block.appendChild(h3);
+    fb.errors.forEach(er=>{
+      const item = document.createElement('div');
+      item.className = 'error-item';
+      item.innerHTML = `<span class="orig">${er.original}</span> → <span class="fix">${er.correction}</span><br>${er.explanation}`;
+      block.appendChild(item);
+    });
+  } else {
+    const h3 = document.createElement('h3'); h3.textContent = 'Sin errores notables 🎉'; block.appendChild(h3);
+  }
+  if(fb.improved_version){
+    const h3 = document.createElement('h3'); h3.textContent = 'Versión mejorada'; block.appendChild(h3);
+    const imp = document.createElement('div');
+    imp.className = 'task-box';
+    imp.textContent = fb.improved_version;
+    block.appendChild(imp);
+  }
+  div.appendChild(block);
+}
+
+document.getElementById('newWritingTask').addEventListener('click', generateWritingTask);
+document.getElementById('correctWriting').addEventListener('click', correctWriting);
+
+// =====================================================
+// TAB 4: READING
+// =====================================================
+function readingSystemPrompt(){
+  const profile = buildProfileSummary();
+  return `Generá un texto breve de comprensión lectora en inglés de nivel avanzado (C1-C2), de entre 120 y 180 palabras, sobre un tema variado (a veces trabajo/profesional de algún rubro, a veces vida cotidiana, a veces cultura general, a veces un tema técnico de alguna especialidad distinta cada vez), junto con 3 preguntas de comprensión de opción múltiple.
+${profile ? `Datos del estudiante: ${profile} Si el nivel estimado es más bajo que C1, podés bajar levemente la complejidad léxica sin simplificar de más ni perder el registro avanzado.\n` : ''}Respondé ÚNICAMENTE con un objeto JSON válido, sin markdown, con esta forma exacta:
+{"title":"...","passage":"...","questions":[{"question":"...","options":["...","...","...","..."],"answer":"texto exacto de la opción correcta","explanation":"en español: por qué la opción correcta es la respuesta, citando la parte del texto que lo confirma, y por qué las otras opciones no encajan"}]}
+Deben ser exactamente 3 preguntas, cada una con 4 opciones.`;
+}
+
+async function loadReading(){
+  const btn = document.getElementById('newReading');
+  const loading = document.getElementById('readingLoading');
+  const area = document.getElementById('readingArea');
+  btn.disabled = true;
+  loading.style.display = 'flex';
+  area.innerHTML = '';
+  try{
+    const raw = await callClaude(readingSystemPrompt(), [{role:"user", content:"Generá el texto y las preguntas."}], 2000, true);
+    const data = parseJsonLoose(raw);
+    renderReading(data);
+  }catch(e){
+    area.innerHTML = '<p class="hint">Error generando la lectura. Probá de nuevo.</p>';
+  }
+  loading.style.display = 'none';
+  btn.disabled = false;
+}
+
+function renderReading(data){
+  const area = document.getElementById('readingArea');
+  area.innerHTML = '';
+  const passageDiv = document.createElement('div');
+  passageDiv.className = 'passage';
+  passageDiv.innerHTML = `<h3>${data.title}</h3><p>${data.passage}</p>`;
+  area.appendChild(passageDiv);
+
+  data.questions.forEach((q, qi)=>{
+    const qWrap = document.createElement('div');
+    qWrap.style.marginBottom = '18px';
+    const qDiv = document.createElement('div');
+    qDiv.className = 'quiz-question';
+    qDiv.style.fontSize = '14.5px';
+    qDiv.textContent = (qi+1) + '. ' + q.question;
+    qWrap.appendChild(qDiv);
+    const optsDiv = document.createElement('div');
+    optsDiv.className = 'options';
+    q.options.forEach(opt=>{
+      const b = document.createElement('button');
+      b.className = 'opt-btn';
+      b.textContent = opt;
+      b.addEventListener('click', ()=>{
+        optsDiv.querySelectorAll('.opt-btn').forEach(o=>o.disabled = true);
+        const correct = opt === q.answer;
+        b.classList.add(correct ? 'correct' : 'incorrect');
+        if(!correct){
+          optsDiv.querySelectorAll('.opt-btn').forEach(o=>{ if(o.textContent === q.answer) o.classList.add('correct'); });
+        }
+        progress.reading.total++;
+        if(correct){ progress.reading.correct++; buddyCelebrate('reading'); }
+        saveProgress();
+        const expl = document.createElement('div');
+        expl.className = 'explanation';
+        expl.textContent = q.explanation;
+        qWrap.appendChild(expl);
+      });
+      optsDiv.appendChild(b);
+    });
+    qWrap.appendChild(optsDiv);
+    area.appendChild(qWrap);
+  });
+}
+
+document.getElementById('newReading').addEventListener('click', loadReading);
+
+// =====================================================
+// BUDDY: asistente pixel-art
+// =====================================================
+const buddyEl = document.getElementById('buddy');
+const buddyCanvas = document.getElementById('buddyCanvas');
+const bctx = buddyCanvas.getContext('2d');
+const bubbleEl = document.getElementById('buddyBubble');
+const bubbleTextEl = document.getElementById('buddyBubbleText');
+const buddyActionsDiv = bubbleEl.querySelector('.bubble-actions');
+const buddyActionBtn = document.getElementById('buddyAction');
+
+let buddyMuted = false;
+let buddySnoozeUntil = 0;
+let buddyLastActivity = Date.now();
+let buddyLastTipAt = 0;
+let buddyBubbleVisible = false;
+let buddyCorner = 'br';
+let buddyTalkAnim = null;
+let buddyReadingMode = false;
+let buddyReadingTarget = null;
+let buddyReadingCategory = null;
+let buddyRelocatingToRead = false;
+let buddyReadingExitTimer = null;
+let buddyBlinkTimer = null;
+let buddyRotateTimer = null;
+let buddyTipInFlight = false;
+let buddyDragging = false;
+let buddyDragMoved = false;
+let buddyDragOffsetX = 0, buddyDragOffsetY = 0;
+let buddyRotationPaused = false;
+let buddyShakeSamples = [];
+let buddyShakeTriggered = false;
+
+// Al pasar el mouse por el globo, congelamos la rotación de tips para poder elegir con calma.
+bubbleEl.addEventListener('mouseenter', ()=>{
+  buddyRotationPaused = true;
+  clearInterval(buddyRotateTimer);
+});
+bubbleEl.addEventListener('mouseleave', ()=>{
+  buddyRotationPaused = false;
+});
+
+const sleep = (ms)=>new Promise(r=>setTimeout(r, ms));
+
+const BUDDY_CORNERS = {
+  br: {right:'24px',bottom:'24px',left:'auto',top:'auto'},
+  bl: {left:'24px',bottom:'24px',right:'auto',top:'auto'},
+  tr: {right:'24px',top:'150px',bottom:'auto',left:'auto'}
+};
+
+const CONV_STARTERS = [
+  "Can you tell me a bit about what you do?",
+  "What's something that's been challenging for you lately?",
+  "How was your week so far?",
+  "What do you think about remote work versus working in an office?",
+  "Describe something you're proud of having accomplished recently.",
+  "What are your plans for the next few months?"
+];
+
+const BUDDY_TIPS = {
+  conversation: [
+    "Probá responder con oraciones completas en vez de sí/no — suma puntos en un examen oral.",
+    "Usá conectores como 'however' o 'on top of that' para sonar más C1.",
+    "Si no sabés una palabra, parafraseá: también evalúan esa habilidad en el examen.",
+    "Dale, escribí algo — sirve para practicar cualquier situación, no solo el examen."
+  ],
+  grammar: [
+    "Fijate primero en el tiempo verbal antes de elegir una opción.",
+    "Leé toda la oración, no solo el espacio en blanco: el contexto da pistas.",
+    "¿Trabado? A veces conviene descartar primero las opciones que suenan raras.",
+    "Puedo generarte otro ejercicio distinto si este no te copa."
+  ],
+  writing: [
+    "Si estás trabado, arrancá con una idea simple y después sumá un ejemplo concreto.",
+    "Conectores como 'however', 'therefore', 'in addition' ayudan a que el texto fluya mejor.",
+    "Releé lo que escribiste en voz alta — a veces así se nota lo que no suena natural.",
+    "No hace falta que sea perfecto: escribí y después lo corregimos juntos."
+  ],
+  reading: [
+    "Leé el texto completo primero, sin mirar las preguntas.",
+    "Las respuestas correctas suelen estar parafraseadas, no copiadas del texto.",
+    "Si una pregunta te cuesta, volvé al párrafo relacionado y releelo con calma."
+  ],
+  idle: [
+    "¿Seguís por ahí? Elegí una pestaña y arrancamos con algo cortito.",
+    "Cuando quieras retomamos — estoy acá si necesitás una mano.",
+    "¿Todo bien? Puedo ayudarte a arrancar algo nuevo si querés practicar."
+  ]
+};
+
+const BUDDY_ACTIONS = {
+  grammar: { label: "Dame un ejercicio", fn: ()=>loadGrammarQuestion() },
+  reading: { label: "Generá una lectura", fn: ()=>loadReading() },
+  writing: { label: "Dame una consigna", fn: ()=>generateWritingTask() },
+  conversation: { label: "Sugerime algo para decir", animated:true, fn: ()=>playConvSuggestion() }
+};
+
+const BUDDY_ENCOURAGEMENT = {
+  grammar: ["¡Bien hecho! 🎉", "¡Exacto, así se hace!", "¡Ahí está! Vas agarrando la mecánica.", "¡Perfecto, seguí así!", "¡Eso es! Nivel C1 a la vista.", "¡Muy bien visto!", "¡Justo esa era!", "¡Ahí lo tenés!", "¡Excelente ojo para el detalle!", "¡Bien ahí, campeón!"],
+  reading: ["¡Correcto! Buena lectura.", "¡Eso es! Entendiste bien el texto.", "¡Muy bien! Seguís sumando.", "¡Perfecto, buena comprensión!", "¡Justo! Leíste con atención.", "¡Ahí está, bien captado!"],
+  writing_good: ["¡Excelente texto! Se nota el nivel.", "¡Muy bien logrado! Así se escribe en C1/C2.", "¡Gran trabajo con esta consigna!", "¡Impecable! Fluye como nativo.", "¡Muy prolijo, felicitaciones!", "¡Así se escribe, con estilo!"],
+  writing_soft: ["Vas bien encaminado, seguimos puliendo detalles.", "Buen intento — con la corrección de arriba ya mejora bastante.", "Cada texto que escribís suma. ¡Seguí así!", "Vas mejorando, se nota el esfuerzo.", "Buen punto de partida, afinemos algunos detalles."],
+  conversation: ["¡Excelente respuesta, ni un error!", "¡Así se habla! Muy natural.", "¡Buenísimo! Seguí así.", "¡Bien dicho!", "¡Justo así se diría en inglés natural!", "¡Sonó como nativo, eh!", "¡Ahí está, bien fluido!", "¡Perfecto, seguí con esa onda!", "¡Muy natural esa respuesta!", "¡Eso es, con confianza!"]
+};
+
+// Easter eggs: aparecen bastante menos seguido que los tips normales
+const BUDDY_FLAVOR = [
+  "En Hyrule dicen que no hay mazmorra que se resuelva sin probar, fallar y volver a intentar — como este ejercicio.",
+  "Cada Templo tiene su llave escondida — este texto también, seguí buscando pistas en el párrafo.",
+  "Un consejo de Hyrule: a veces hay que volver atrás y escuchar mejor la pregunta, como cuando te perdés en un bosque encantado.",
+  "La Trifuerza tiene tres partes: Valor, Sabiduría y Poder — a esta práctica solo le falta la tuya: constancia.",
+  "Ningún héroe de Hyrule avanzó sin explorar cada rincón del mapa primero.",
+  "Samus nunca avanzó sin revisar cada rincón — este texto también tiene detalles escondidos si lo releés con calma.",
+  "En Metroid, quedarse sin energía no es el final: es la señal de recargar y volver — como cuando te trabás en un ejercicio.",
+  "Zebes no se exploró en un día, y tu inglés tampoco se arma en una sola sesión.",
+  "Todo traje nuevo se siente raro al principio — como una palabra nueva, hasta que la usás un par de veces.",
+  "ThanaJAD, el que armó esta app, es fanático de Metroid y de Zelda — seguro aprobaría esta racha tuya.",
+  "Cuentan que ThanaJAD programó esta app pensando en vos, Guille — no la dejes en visto, seguí practicando.",
+  "Si ThanaJAD estuviera mirando, probablemente te tiraría una referencia de Zelda y te diría que sigas jugando... digo, practicando.",
+  "Ni Homero se rindió buscando donas en la planta nuclear — vos tampoco te rindas con este ejercicio.",
+  "Como el Jefe Gorgory con sus casos, a veces hay que releer la pista dos veces antes de resolverla.",
+  "Lisa practicaría el saxo hasta perfeccionarlo — este inglés se perfecciona igual, con constancia.",
+  "En Springfield nadie es perfecto al primer intento, ni siquiera el Dr. Hibbert — seguí probando.",
+  "Bart no se sabía las tablas al principio tampoco, y mirá cómo terminó dominando el monopatín.",
+  "Moe atiende su taberna con paciencia todos los días — la práctica constante rinde igual acá."
+];
+
+function buddyCelebrate(tab, variant){
+  if(buddyMuted || buddyDragging) return;
+  const key = variant || tab;
+  const pool = BUDDY_ENCOURAGEMENT[key];
+  if(!pool || !pool.length) return;
+  const text = pool[Math.floor(Math.random()*pool.length)];
+  clearInterval(buddyRotateTimer);
+  if(buddyTalkAnim){ clearInterval(buddyTalkAnim); buddyTalkAnim = null; }
+  buddyEl.classList.remove('hopping');
+  positionBubbleNearBuddy();
+  bubbleEl.classList.add('show');
+  bubbleTextEl.classList.remove('ok-pop');
+  bubbleTextEl.textContent = text;
+  buddyActionBtn.style.display = 'none';
+  buddyActionsDiv.style.display = 'flex';
+  buddyBubbleVisible = true;
+  buddyLastTipAt = Date.now();
+
+  const style = Math.random();
+  if(style < 0.34){
+    // estilo clásico: alterna entre hablar y sonreír
+    let toggle = false;
+    drawBuddy('talk', false, false);
+    buddyTalkAnim = setInterval(()=>{
+      if(!buddyBubbleVisible){ clearInterval(buddyTalkAnim); return; }
+      toggle = !toggle;
+      drawBuddy(toggle ? 'talk' : 'smile', false, false);
+    }, 300);
+  } else if(style < 0.67){
+    // guiño cómplice
+    drawBuddy('smile', false, false, false, false, false, false, false, true);
+    buddyTalkAnim = setTimeout(()=>{
+      if(buddyBubbleVisible) drawBuddy('smile', false, false);
+    }, 550);
+  } else {
+    // saltitos de festejo
+    buddyEl.classList.add('hopping');
+    drawBuddy('smile', false, false);
+    setTimeout(()=> buddyEl.classList.remove('hopping'), 1300);
+  }
+
+  setTimeout(()=>{ if(buddyBubbleVisible && bubbleTextEl.textContent === text) hideBuddyBubble(); }, 4200);
+}
+
+function drawBuddy(mouth, blink, asleep, grabbed, cringe, dizzy, starry, yum, wink, glasses, readOffset){
+  bctx.clearRect(0,0,64,64);
+  const fill = asleep ? '#7C7566' : '#F4D06F';
+  const outline = '#2B2116';
+  for(let py=0; py<16; py++){
+    for(let px=0; px<16; px++){
+      const dx = px-7.5, dy = py-7.5;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+      if(dist>7.4) continue;
+      bctx.fillStyle = dist>6.4 ? outline : fill;
+      bctx.fillRect(px*4, py*4, 4, 4);
+    }
+  }
+  bctx.fillStyle = outline;
+  if(readOffset !== undefined && readOffset !== null){
+    // leyendo: ojos abiertos que se desplazan de lado a lado, como recorriendo una línea de texto
+    bctx.fillRect(4*4 + readOffset, 5*4, 2*4, 2*4);
+    bctx.fillRect(10*4 + readOffset, 5*4, 2*4, 2*4);
+  } else if(yum){
+    // ojitos entrecerrados de felicidad, como comiendo algo riquísimo
+    const eyeHappy = (ex,ey)=>{
+      bctx.fillRect(ex*4, (ey+1)*4, 4, 4);
+      bctx.fillRect((ex+1)*4, ey*4, 4, 4);
+      bctx.fillRect((ex+2)*4, (ey+1)*4, 4, 4);
+    };
+    eyeHappy(4,5);
+    eyeHappy(10,5);
+  } else if(starry){
+    // ojos grandes y brillantes estilo anime, como contando algo hermoso
+    const eyeStar = (ex,ey)=>{
+      bctx.fillStyle = outline;
+      bctx.fillRect(ex*4, ey*4, 3*4, 3*4);
+      bctx.fillStyle = '#9FE3FF';
+      bctx.fillRect(ex*4+4, ey*4+4, 2*4, 2*4);
+      bctx.fillStyle = '#FFFFFF';
+      bctx.fillRect(ex*4+4, ey*4, 1*4, 1*4);
+      bctx.fillRect(ex*4, ey*4+8, 1*4, 1*4);
+    };
+    eyeStar(3,4);
+    eyeStar(9,4);
+  } else if(dizzy){
+    const eyeX = (ex,ey)=>{
+      bctx.fillRect(ex*4, ey*4, 4, 4);
+      bctx.fillRect((ex+1)*4, (ey+1)*4, 4, 4);
+      bctx.fillRect((ex+2)*4, ey*4, 4, 4);
+      bctx.fillRect((ex+2)*4, (ey+2)*4, 4, 4);
+      bctx.fillRect(ex*4, (ey+2)*4, 4, 4);
+    };
+    eyeX(4,5);
+    eyeX(10,5);
+  } else if(wink){
+    // guiño: un ojo abierto normal, el otro cerrado
+    bctx.fillRect(4*4,5*4,2*4,2*4);
+    bctx.fillRect(10*4,6*4,2*4,1*4);
+  } else if(grabbed){
+    bctx.fillRect(3*4,4*4,3*4,3*4);
+    bctx.fillRect(10*4,4*4,3*4,3*4);
+  } else if(cringe || blink || asleep){
+    bctx.fillRect(4*4,6*4,2*4,1*4);
+    bctx.fillRect(10*4,6*4,2*4,1*4);
+  } else {
+    bctx.fillRect(4*4,5*4,2*4,2*4);
+    bctx.fillRect(10*4,5*4,2*4,2*4);
+  }
+  if(cringe || dizzy){
+    bctx.fillStyle = '#E35C5C';
+    bctx.fillRect(1*4,7*4,3*4,3*4);
+    bctx.fillRect(12*4,7*4,3*4,3*4);
+  } else if(yum){
+    bctx.fillStyle = '#FF9EB5';
+    bctx.fillRect(1*4,7*4,3*4,3*4);
+    bctx.fillRect(12*4,7*4,3*4,3*4);
+  } else {
+    bctx.fillStyle = '#E39B9B';
+    bctx.fillRect(2*4,9*4,1*4,1*4);
+    bctx.fillRect(13*4,9*4,1*4,1*4);
+  }
+  bctx.fillStyle = outline;
+  if(dizzy){
+    bctx.fillRect(7*4,10*4,2*4,2*4);
+  } else if(grabbed){
+    bctx.fillRect(6*4,10*4,4*4,3*4);
+  } else if(cringe){
+    bctx.fillRect(6*4,11*4,1*4,1*4);
+    bctx.fillRect(7*4,12*4,2*4,1*4);
+    bctx.fillRect(9*4,11*4,1*4,1*4);
+  } else if(asleep){
+    bctx.fillRect(7*4,11*4,2*4,1*4);
+  } else if(mouth==='talk'){
+    bctx.fillRect(7*4,10*4,2*4,2*4);
+  } else if(mouth==='flat'){
+    bctx.fillRect(6*4,11*4,4*4,1*4);
+  } else {
+    bctx.fillRect(6*4,10*4,1*4,1*4);
+    bctx.fillRect(9*4,10*4,1*4,1*4);
+    bctx.fillRect(7*4,11*4,2*4,1*4);
+  }
+  if(glasses){
+    // anteojos de lectura: marco fino y dorado (no negro sólido), para que se note transparente y se vean los ojos
+    bctx.save();
+    bctx.strokeStyle = '#C99A3C';
+    bctx.lineWidth = 1.5;
+    bctx.strokeRect(3*4+1, 4*4+1, 4*4-2, 3*4-2);
+    bctx.strokeRect(9*4+1, 4*4+1, 4*4-2, 3*4-2);
+    bctx.beginPath();
+    bctx.moveTo(7*4, 5*4+2);
+    bctx.lineTo(9*4, 5*4+2);
+    bctx.stroke();
+    bctx.restore();
+  }
+}
+
+let buddyCringeTimeout = null;
+function buddyReactCringe(){
+  if(buddyMuted || buddyDragging) return;
+  clearTimeout(buddyCringeTimeout);
+  if(buddyTalkAnim){ clearInterval(buddyTalkAnim); buddyTalkAnim = null; }
+  drawBuddy('flat', false, false, false, true);
+  buddyCringeTimeout = setTimeout(()=>{
+    if(!buddyMuted && !buddyDragging && !buddyBubbleVisible) drawBuddy('smile', false, false);
+  }, 2600);
+}
+
+function scheduleBlink(){
+  clearTimeout(buddyBlinkTimer);
+  buddyBlinkTimer = setTimeout(()=>{
+    if(!buddyMuted && !buddyBubbleVisible && !buddyDragging && !buddyReadingMode){
+      drawBuddy('smile', true, false);
+      setTimeout(()=>{ if(!buddyMuted && !buddyBubbleVisible && !buddyDragging && !buddyReadingMode) drawBuddy('smile', false, false); }, 160);
+    }
+    scheduleBlink();
+  }, 3000 + Math.random()*3000);
+}
+
+function buddyIsBusy(){
+  const ids = ['convLoading','grammarLoading','taskLoading','writingLoading','readingLoading'];
+  return ids.some(id=>{
+    const el = document.getElementById(id);
+    return el && getComputedStyle(el).display !== 'none';
+  });
+}
+
+function currentTabKey(){
+  const active = document.querySelector('.tab-btn.active');
+  return active ? active.dataset.tab : 'conversation';
+}
+
+function applyBuddyCorner(key){
+  buddyEl.style.transition = '';
+  Object.assign(buddyEl.style, BUDDY_CORNERS[key]);
+}
+
+// Antes de moverlo solo, nos fijamos si el usuario está escribiendo o interactuando con algo concreto
+function userIsActivelyEngaged(){
+  const ae = document.activeElement;
+  if(!ae) return false;
+  const tag = ae.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || ae.isContentEditable;
+}
+
+function cornerTargetPx(key){
+  const rect = buddyEl.getBoundingClientRect();
+  const margin = 24;
+  const topOffset = 150;
+  if(key === 'br') return { x: window.innerWidth - rect.width - margin, y: window.innerHeight - rect.height - margin };
+  if(key === 'bl') return { x: margin, y: window.innerHeight - rect.height - margin };
+  if(key === 'tr') return { x: window.innerWidth - rect.width - margin, y: topOffset };
+  return { x: rect.left, y: rect.top };
+}
+
+function resolveTargetPx(keyOrPoint){
+  if(typeof keyOrPoint === 'object') return keyOrPoint;
+  return cornerTargetPx(keyOrPoint);
+}
+
+// Traslado caminando: desliza de un punto a otro con un leve vaivén de pasos
+function glideBuddyTo(keyOrPoint, opts){
+  opts = opts || {};
+  if(!opts.force && (userIsActivelyEngaged() || buddyDragging || buddyBubbleVisible)) return;
+  const rect = buddyEl.getBoundingClientRect();
+  const target = resolveTargetPx(keyOrPoint);
+  buddyEl.style.transition = 'none';
+  buddyEl.style.left = rect.left + 'px';
+  buddyEl.style.top = rect.top + 'px';
+  buddyEl.style.right = 'auto';
+  buddyEl.style.bottom = 'auto';
+  buddyEl.offsetHeight; // fuerza reflow para que el próximo cambio sí anime
+  buddyEl.classList.add('walking');
+  buddyEl.style.transition = 'left .9s cubic-bezier(.4,0,.2,1), top .9s cubic-bezier(.4,0,.2,1)';
+  requestAnimationFrame(()=>{
+    buddyEl.style.left = target.x + 'px';
+    buddyEl.style.top = target.y + 'px';
+  });
+  setTimeout(()=>{
+    buddyEl.classList.remove('walking');
+    buddyEl.style.transition = '';
+    if(opts.onDone) opts.onDone();
+  }, 950);
+}
+
+// Traslado con desvanecido: desaparece suave, se reubica, y vuelve a aparecer suave
+function fadeBuddyTo(keyOrPoint, opts){
+  opts = opts || {};
+  if(!opts.force && (userIsActivelyEngaged() || buddyDragging || buddyBubbleVisible)) return;
+  const target = resolveTargetPx(keyOrPoint);
+  buddyEl.style.transition = 'opacity .32s ease';
+  buddyEl.style.opacity = '0';
+  setTimeout(()=>{
+    buddyEl.style.transition = 'none';
+    buddyEl.style.left = target.x + 'px';
+    buddyEl.style.top = target.y + 'px';
+    buddyEl.style.right = 'auto';
+    buddyEl.style.bottom = 'auto';
+    buddyEl.offsetHeight;
+    buddyEl.style.transition = 'opacity .32s ease';
+    buddyEl.style.opacity = '1';
+    setTimeout(()=>{
+      buddyEl.style.transition = '';
+      if(opts.onDone) opts.onDone();
+    }, 330);
+  }, 330);
+}
+
+// Elige al azar entre caminar o desvanecerse, según el momento
+function relocateBuddy(keyOrPoint, opts){
+  if(Math.random() < 0.5) glideBuddyTo(keyOrPoint, opts);
+  else fadeBuddyTo(keyOrPoint, opts);
+}
+
+function moveBuddyRandom(){
+  if(userIsActivelyEngaged()) return;
+  const keys = Object.keys(BUDDY_CORNERS).filter(k=>k!==buddyCorner);
+  buddyCorner = keys[Math.floor(Math.random()*keys.length)];
+  relocateBuddy(buddyCorner);
+}
+
+// ---------- Modo lectura: el asistente nota cuando estás escribiendo y reacciona según la distancia ----------
+const BUDDY_WATCHED_INPUTS = ['chatInput', 'writingInput'];
+
+function pointNearElement(el){
+  const rect = el.getBoundingClientRect();
+  const bRect = buddyEl.getBoundingClientRect();
+  let x = rect.right + 16;
+  if(x + bRect.width > window.innerWidth - 8) x = rect.left - bRect.width - 16;
+  if(x < 8) x = Math.max(8, Math.min(rect.left, window.innerWidth - bRect.width - 8));
+  let y = rect.top + rect.height/2 - bRect.height/2;
+  y = Math.max(8, Math.min(y, window.innerHeight - bRect.height - 8));
+  return { x, y };
+}
+
+function startReadingAnimation(withGlasses){
+  clearInterval(buddyTalkAnim);
+  const offsets = [-4, 0, 4, 0];
+  let i = 0;
+  drawBuddy('flat', false, false, false, false, false, false, false, false, withGlasses, offsets[0]);
+  buddyTalkAnim = setInterval(()=>{
+    if(!buddyReadingMode){ clearInterval(buddyTalkAnim); return; }
+    i = (i + 1) % offsets.length;
+    const mouthState = i % 2 === 0 ? 'flat' : 'smile';
+    drawBuddy(mouthState, false, false, false, false, false, false, false, false, withGlasses, offsets[i]);
+  }, 260);
+}
+
+function exitReadingMode(){
+  if(!buddyReadingMode) return;
+  buddyReadingMode = false;
+  buddyReadingTarget = null;
+  buddyReadingCategory = null;
+  clearTimeout(buddyReadingExitTimer);
+  clearInterval(buddyTalkAnim);
+  buddyTalkAnim = null;
+  if(!buddyMuted && !buddyBubbleVisible && !buddyDragging) drawBuddy('smile', false, false);
+}
+
+function scheduleReadingExit(){
+  clearTimeout(buddyReadingExitTimer);
+  buddyReadingExitTimer = setTimeout(exitReadingMode, 2600);
+}
+
+const BUDDY_READ_FAR = 380, BUDDY_READ_NEAR = 130;
+
+function categorizeReadingDistance(el){
+  const rect = el.getBoundingClientRect();
+  const bRect = buddyEl.getBoundingClientRect();
+  const bx = bRect.left + bRect.width/2, by = bRect.top + bRect.height/2;
+  const tx = rect.left + rect.width/2, ty = rect.top + rect.height/2;
+  const dist = Math.hypot(bx - tx, by - ty);
+  if(dist > BUDDY_READ_FAR) return 'far';
+  if(dist > BUDDY_READ_NEAR) return 'medium';
+  return 'near';
+}
+
+// Aplica la reacción según la distancia actual: lejos (anteojos, sin moverse), media (se acerca y lee sin anteojos) o cerca (lee sin anteojos, sin moverse)
+function applyReadingCategory(el, category){
+  buddyReadingCategory = category;
+  if(category === 'far'){
+    startReadingAnimation(true);
+  } else if(category === 'medium'){
+    if(buddyRelocatingToRead) return;
+    buddyRelocatingToRead = true;
+    buddyCorner = 'free';
+    relocateBuddy(pointNearElement(el), { force:true, onDone: ()=>{
+      buddyRelocatingToRead = false;
+      if(buddyReadingMode && buddyReadingTarget === el) startReadingAnimation(false);
+    }});
+  } else {
+    startReadingAnimation(false);
+  }
+}
+
+function enterReadingMode(el){
+  buddyReadingMode = true;
+  buddyReadingTarget = el;
+  clearInterval(buddyRotateTimer);
+  applyReadingCategory(el, categorizeReadingDistance(el));
+}
+
+function buddyOnUserTyping(el){
+  if(buddyMuted || buddyDragging || buddyBubbleVisible) return;
+  if(buddyReadingMode && buddyReadingTarget === el){
+    // ya está leyendo este campo: reevaluamos la distancia por si cambió (ej: se movió o lo arrastraron)
+    if(!buddyRelocatingToRead){
+      const cat = categorizeReadingDistance(el);
+      if(cat !== buddyReadingCategory) applyReadingCategory(el, cat);
+    }
+    scheduleReadingExit();
+    return;
+  }
+  enterReadingMode(el);
+  scheduleReadingExit();
+}
+
+BUDDY_WATCHED_INPUTS.forEach(id=>{
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('input', ()=> buddyOnUserTyping(el));
+  el.addEventListener('blur', ()=>{ if(buddyReadingTarget === el) exitReadingMode(); });
+});
+
+function clampBuddyPosition(){
+  const rect = buddyEl.getBoundingClientRect();
+  const maxX = window.innerWidth - rect.width - 4;
+  const maxY = window.innerHeight - rect.height - 4;
+  const x = Math.max(4, Math.min(rect.left, maxX));
+  const y = Math.max(4, Math.min(rect.top, maxY));
+  buddyEl.style.left = x + 'px';
+  buddyEl.style.top = y + 'px';
+  buddyEl.style.right = 'auto';
+  buddyEl.style.bottom = 'auto';
+}
+
+function positionBubbleNearBuddy(){
+  const rect = buddyEl.getBoundingClientRect();
+  const bw = 240;
+  const gap = 16;
+  const spaceLeft = rect.left;
+  const spaceRight = window.innerWidth - rect.right;
+  const side = spaceLeft >= bw + gap + 10 ? 'left' : (spaceRight >= bw + gap + 10 ? 'right' : (spaceLeft > spaceRight ? 'left' : 'right'));
+  const left = side === 'left' ? (rect.left - bw - gap) : (rect.right + gap);
+  let top = rect.top + rect.height/2 - 55;
+  top = Math.max(10, Math.min(top, window.innerHeight - 150));
+  bubbleEl.style.left = Math.max(10, Math.min(left, window.innerWidth - bw - 10)) + 'px';
+  bubbleEl.style.top = top + 'px';
+  bubbleEl.style.right = 'auto';
+  bubbleEl.style.bottom = 'auto';
+  bubbleEl.classList.remove('arrow-left','arrow-right');
+  bubbleEl.classList.add(side === 'left' ? 'arrow-right' : 'arrow-left');
+}
+
+function shuffledPick(pool, n){
+  const arr = pool.slice();
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr.slice(0, n);
+}
+
+function renderBubbleStep(text, tab){
+  bubbleTextEl.classList.remove('ok-pop');
+  bubbleTextEl.textContent = text;
+  buddyActionsDiv.style.display = 'flex';
+  const action = BUDDY_ACTIONS[tab];
+  if(action){
+    buddyActionBtn.style.display = 'inline-block';
+    buddyActionBtn.textContent = action.label;
+    buddyActionBtn.onclick = (e)=>{
+      e.stopPropagation();
+      buddyLastActivity = Date.now();
+      if(action.animated){
+        clearInterval(buddyRotateTimer);
+        if(buddyTalkAnim){ clearInterval(buddyTalkAnim); buddyTalkAnim = null; }
+        action.fn();
+      } else {
+        hideBuddyBubble();
+        action.fn();
+      }
+    };
+  } else {
+    buddyActionBtn.style.display = 'none';
+  }
+}
+
+// Pide una pista contextual a la IA basada en la conversación real, para mezclar con tips genéricos
+async function generateContextualTip(){
+  const recent = convHistory.slice(-6).map(m=>({role:m.role, content:m.content.split('\n')[0]}));
+  const profile = buildProfileSummary();
+  const system = `Estás ayudando a alguien a practicar inglés conversacional. Mirá este fragmento de conversación en inglés y dale UNA sugerencia breve en español (máximo 2 oraciones) relacionada con el tema que se está hablando. Puede ser una idea de qué podría responder o agregar a continuación, un dato relacionado al tema, o un consejo de vocabulario puntual sobre eso — no siempre tiene que ser algo súper concreto, a veces alcanza con una idea general relacionada al tema. No repitas la conversación ni des una respuesta completa armada, solo una pista.${profile ? ` Datos de este estudiante, para dar una pista más útil cuando venga al caso: ${profile}` : ''}`;
+  const text = await callClaude(system, recent, 400);
+  return text.trim();
+}
+
+// Arma el contexto de lo que se está haciendo ahora mismo en la app, para que las líneas de Zelda/Metroid/ThanaJAD tengan sentido con eso
+function currentSectionContext(tab){
+  if(tab === 'grammar'){
+    const el = document.getElementById('grammarQuizArea');
+    const txt = el ? el.textContent.trim().slice(0,220) : '';
+    return txt ? `Está en la sección de gramática/vocabulario (Use of English), con este ejercicio activo: "${txt}"` : 'Está en la sección de gramática/vocabulario, todavía sin ejercicio generado.';
+  }
+  if(tab === 'writing'){
+    return currentWritingTask ? `Está en la sección de writing, con esta consigna activa: "${currentWritingTask}"` : 'Está en la sección de writing, todavía sin consigna generada.';
+  }
+  if(tab === 'reading'){
+    const el = document.getElementById('readingArea');
+    const txt = el ? el.textContent.trim().slice(0,220) : '';
+    return txt ? `Está en la sección de lectura, con este texto activo: "${txt}"` : 'Está en la sección de lectura, todavía sin texto generado.';
+  }
+  const ctxEl = document.getElementById('convContext');
+  const ctx = ctxEl ? contextLabels[ctxEl.value] : '';
+  const lastMsgs = convHistory.slice(-4).map(m=>`${m.role==='user'?'Guille':'el asistente'}: ${m.content.split('\n')[0]}`).join(' / ');
+  return `Está conversando en el contexto "${ctx}".` + (lastMsgs ? ` Últimos mensajes: ${lastMsgs}` : ' Todavía no escribió nada.');
+}
+
+// Genera una línea de easter egg (Zelda, Metroid o ThanaJAD) con referencias reales de esas sagas / de sus intereses, conectada con lo que se está haciendo ahora
+async function generateFlavorLine(){
+  const tab = currentTabKey();
+  const sectionContext = currentSectionContext(tab);
+  const roll = Math.random();
+  const focus = roll < 0.25 ? 'zelda' : (roll < 0.5 ? 'metroid' : (roll < 0.75 ? 'simpsons' : 'thanajad'));
+
+  let system;
+  if(focus === 'zelda'){
+    system = `Sos un asistente pixel-art de una app para aprender inglés (English Lab), y sos fanático de TODA la saga The Legend of Zelda: desde el original de 1986, Zelda II, A Link to the Past, Link's Awakening, Ocarina of Time, Majora's Mask, Oracle of Ages/Seasons, Wind Waker, Four Swords, Minish Cap, Twilight Princess, Phantom Hourglass, Spirit Tracks, Skyward Sword, A Link Between Worlds, Breath of the Wild, Tears of the Kingdom, Echoes of Wisdom, y cualquier personaje, objeto, lugar o momento de lore de toda esa historia.
+Generá UNA frase corta en español (1-2 oraciones), alegórica o con una referencia concreta a algún juego/personaje/objeto/momento de la saga Zelda, que conecte de forma ingeniosa con lo que la persona está haciendo ahora mismo en la app. Variá qué juego o elemento de la saga usás cada vez, no te repitas siempre con los mismos.
+Contexto actual: ${sectionContext}
+No expliques la referencia, solo hacé la conexión de forma natural y motivadora. Sin markdown, sin comillas, sin mencionar que sos una IA.`;
+  } else if(focus === 'metroid'){
+    system = `Sos un asistente pixel-art de una app para aprender inglés (English Lab), y sos fanático de TODA la saga Metroid: desde el Metroid original de 1986, Metroid II, Super Metroid, Metroid Fusion, Metroid Prime 1/2/3, Metroid Prime Hunters, Metroid: Other M, Samus Returns, Metroid Dread, Metroid Prime Remastered, y cualquier personaje, objeto, lugar o momento de lore de toda esa historia.
+Generá UNA frase corta en español (1-2 oraciones), alegórica o con una referencia concreta a algún juego/personaje/objeto/momento de la saga Metroid, que conecte de forma ingeniosa con lo que la persona está haciendo ahora mismo en la app. Variá qué juego o elemento de la saga usás cada vez, no te repitas siempre con los mismos.
+Contexto actual: ${sectionContext}
+No expliques la referencia, solo hacé la conexión de forma natural y motivadora. Sin markdown, sin comillas, sin mencionar que sos una IA.`;
+  } else if(focus === 'simpsons'){
+    system = `Sos un asistente pixel-art de una app para aprender inglés (English Lab), y sos fanático de Los Simpson, específicamente de la etapa dorada de la serie: las primeras diez temporadas, emitidas originalmente entre 1989 y 1999 (desde los cortos y el piloto hasta más o menos la temporada 10), y siempre pensás en esa etapa con las voces y el estilo del doblaje latinoamericano clásico (Humberto Vélez como Homero, Marina Huerta como Bart, Nancy MacKenzie/Patricia Acevedo como Lisa, Claudia Motta como Marge, y el resto del elenco de esa época). Conocés a fondo a los personajes (Homero, Marge, Bart, Lisa, Maggie, el Sr. Burns, Smithers, Moe, Ned Flanders, Milhouse, Krusty, el Jefe Gorgory, Apu, la directora Skinner, Otto, el reverendo Alegría, etc.), los lugares (Springfield, la planta nuclear, la Taberna de Moe, la escuela primaria de Springfield) y las situaciones icónicas de esos primeros años.
+Generá UNA frase corta en español (1-2 oraciones), alegórica o con una referencia concreta a algún personaje/episodio/situación de esa etapa de Los Simpson (en el estilo del doblaje latino, sin citar diálogo textual con derechos de autor, solo aludiendo de forma natural), que conecte de forma ingeniosa con lo que la persona está haciendo ahora mismo en la app. Variá qué personaje o situación usás cada vez, no te repitas siempre con los mismos.
+Contexto actual: ${sectionContext}
+No expliques la referencia, solo hacé la conexión de forma natural y con humor. Sin markdown, sin comillas, sin mencionar que sos una IA.`;
+  } else {
+    system = `Sos un asistente pixel-art de una app para aprender inglés llamada English Lab, creada por ThanaJAD.
+ThanaJAD es quien programó esta app. Le gusta el desarrollo de software, cocinar, el anime, las computadoras, los idiomas (sabe japonés) y el inglés. Es amigo de Guille, que es quien usa esta app para aprender inglés.
+Generá UNA frase corta en español (1-2 oraciones) con un guiño cariñoso hacia ThanaJAD y su amistad con Guille, usando alguno de sus intereses (programación, cocina, anime, computadoras, idiomas/japonés, inglés) como referencia o metáfora, conectada con lo que Guille está haciendo ahora mismo en la app. Variá qué interés usás cada vez, no te repitas siempre con el mismo.
+Contexto actual: ${sectionContext}
+Tono cercano y alentador, como una referencia interna entre amigos. Sin markdown, sin comillas.`;
+  }
+
+  const text = await callClaude(system, [{role:"user", content:"Generá la frase."}], 200);
+  return text.trim().replace(/^["']+|["']+$/g,'');
+}
+
+async function showBuddyTip(force){
+  if(buddyTipInFlight) return;
+  buddyTipInFlight = true;
+
+  // easter egg: bastante menos frecuente que un tip normal
+  if(Math.random() < 0.14){
+    if(buddyIsBusy() || buddyMuted || Date.now() < buddySnoozeUntil || (!force && (buddyDragging || Date.now()-buddyLastActivity < 3000))){
+      buddyTipInFlight = false;
+      return;
+    }
+    let line;
+    try{
+      line = await generateFlavorLine();
+      if(!line) throw new Error('vacío');
+    }catch(e){
+      line = BUDDY_FLAVOR[Math.floor(Math.random()*BUDDY_FLAVOR.length)];
+    }
+    // si mientras esperábamos la IA el usuario volvió a la actividad, no interrumpir
+    if(buddyIsBusy() || buddyMuted || Date.now() < buddySnoozeUntil || (!force && (buddyDragging || Date.now()-buddyLastActivity < 3000))){
+      buddyTipInFlight = false;
+      return;
+    }
+    positionBubbleNearBuddy();
+    bubbleEl.classList.add('show');
+    buddyBubbleVisible = true;
+    buddyLastTipAt = Date.now();
+    bubbleTextEl.classList.remove('ok-pop');
+    bubbleTextEl.textContent = line;
+    buddyActionBtn.style.display = 'none';
+    buddyActionsDiv.style.display = 'flex';
+    let toggleE = false;
+    drawBuddy('talk', false, false, false, false, false, true);
+    buddyTalkAnim = setInterval(()=>{
+      if(!buddyBubbleVisible){ clearInterval(buddyTalkAnim); return; }
+      toggleE = !toggleE;
+      drawBuddy(toggleE ? 'talk' : 'smile', false, false, false, false, false, true);
+    }, 380);
+    buddyTipInFlight = false;
+    return;
+  }
+
+  const tab = currentTabKey();
+  let tips;
+  if(tab === 'conversation' && convHistory.length >= 2 && Math.random() < 0.6){
+    try{
+      const contextual = await generateContextualTip();
+      const staticPicks = shuffledPick(BUDDY_TIPS.conversation, 2);
+      tips = [contextual, ...staticPicks];
+    }catch(e){
+      tips = shuffledPick(BUDDY_TIPS.conversation, Math.min(3, BUDDY_TIPS.conversation.length));
+    }
+  } else {
+    const pool = (BUDDY_TIPS[tab] && BUDDY_TIPS[tab].length) ? BUDDY_TIPS[tab] : BUDDY_TIPS.idle;
+    tips = shuffledPick(pool, Math.min(3, pool.length));
+  }
+  // si mientras esperábamos la IA el usuario volvió a la actividad, no interrumpir
+  if(buddyIsBusy() || buddyMuted || Date.now() < buddySnoozeUntil || (!force && (buddyDragging || Date.now()-buddyLastActivity < 3000))){
+    buddyTipInFlight = false;
+    return;
+  }
+  let idx = 0;
+  buddyRotationPaused = false;
+  positionBubbleNearBuddy();
+  bubbleEl.classList.add('show');
+  buddyBubbleVisible = true;
+  buddyLastTipAt = Date.now();
+  renderBubbleStep(tips[idx], tab);
+  let toggle = false;
+  drawBuddy('talk', false, false);
+  buddyTalkAnim = setInterval(()=>{
+    if(!buddyBubbleVisible){ clearInterval(buddyTalkAnim); return; }
+    toggle = !toggle;
+    drawBuddy(toggle ? 'talk' : 'smile', false, false);
+  }, 380);
+  clearInterval(buddyRotateTimer);
+  buddyRotateTimer = setInterval(()=>{
+    if(!buddyBubbleVisible){ clearInterval(buddyRotateTimer); return; }
+    if(buddyRotationPaused) return;
+    idx++;
+    if(idx >= tips.length){ clearInterval(buddyRotateTimer); return; }
+    renderBubbleStep(tips[idx], tab);
+  }, 6500);
+  buddyTipInFlight = false;
+}
+
+// Le pide a la IA una frase en inglés coherente con lo último hablado en la conversación
+async function generateConvSuggestionPhrase(){
+  const ctx = contextLabels[document.getElementById('convContext').value];
+  const recent = convHistory.slice(-6);
+  const system = `Sos un compañero de práctica de inglés (nivel C1-C2) que ayuda a alguien a saber qué responder en una conversación de práctica oral, en este contexto: ${ctx}.
+Mirá el historial reciente de la conversación y sugerí UNA sola oración en inglés natural, coherente con lo último que se dijo o preguntó — algo concreto que la persona podría responder o agregar a continuación.
+Respondé ÚNICAMENTE con esa oración en inglés, sin comillas, sin explicaciones, sin texto en español, sin markdown.`;
+  const text = await callClaude(system, recent, 150);
+  return text.trim().replace(/^["']+|["']+$/g, '');
+}
+
+// Animación estilo "OK!" + tipeo letra por letra cuando sugiere algo para decir
+async function playConvSuggestion(){
+  positionBubbleNearBuddy();
+  bubbleEl.classList.add('show');
+  buddyBubbleVisible = true;
+  buddyActionsDiv.style.display = 'none';
+  bubbleTextEl.classList.add('ok-pop');
+  bubbleTextEl.textContent = 'OK!';
+  drawBuddy('talk', false, false, false, false, false, false, true);
+  await sleep(600);
+  bubbleTextEl.classList.remove('ok-pop');
+  bubbleTextEl.textContent = '...';
+  let thinkToggle = false;
+  const thinkAnim = setInterval(()=>{ thinkToggle = !thinkToggle; drawBuddy(thinkToggle ? 'talk' : 'smile', false, false); }, 220);
+  let phrase;
+  try{
+    if(convHistory.length >= 2){
+      phrase = await generateConvSuggestionPhrase();
+      if(!phrase) throw new Error('vacío');
+    } else {
+      phrase = CONV_STARTERS[Math.floor(Math.random()*CONV_STARTERS.length)];
+    }
+  }catch(e){
+    phrase = CONV_STARTERS[Math.floor(Math.random()*CONV_STARTERS.length)];
+  }
+  clearInterval(thinkAnim);
+  bubbleTextEl.textContent = '';
+  let toggle = false;
+  const talkInterval = setInterval(()=>{ toggle = !toggle; drawBuddy(toggle ? 'talk' : 'smile', false, false); }, 220);
+  for(let i=0; i<phrase.length; i++){
+    bubbleTextEl.textContent += phrase.charAt(i);
+    await sleep(26);
+  }
+  clearInterval(talkInterval);
+  drawBuddy('smile', false, false);
+  const input = document.getElementById('chatInput');
+  input.value = phrase;
+  input.focus();
+  buddyLastActivity = Date.now();
+  buddyLastTipAt = Date.now();
+  buddyActionsDiv.style.display = 'flex';
+  setTimeout(()=>{ if(buddyBubbleVisible && bubbleTextEl.textContent === phrase) hideBuddyBubble(); }, 2200);
+}
+
+function hideBuddyBubble(){
+  bubbleEl.classList.remove('show');
+  bubbleTextEl.classList.remove('ok-pop');
+  buddyBubbleVisible = false;
+  if(buddyTalkAnim){ clearInterval(buddyTalkAnim); buddyTalkAnim = null; }
+  clearInterval(buddyRotateTimer);
+  if(!buddyMuted && !buddyDragging) drawBuddy('smile', false, false);
+}
+
+['keydown','mousedown','input','touchstart'].forEach(evt=>{
+  document.addEventListener(evt, (e)=>{
+    if(buddyEl.contains(e.target) || bubbleEl.contains(e.target)) return;
+    buddyLastActivity = Date.now();
+    if(buddyBubbleVisible) hideBuddyBubble();
+  }, {passive:true});
+});
+
+document.getElementById('buddyClose').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  buddyLastActivity = Date.now();
+  hideBuddyBubble();
+});
+document.getElementById('buddySnooze').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  buddySnoozeUntil = Date.now() + 10*60*1000;
+  hideBuddyBubble();
+});
+
+// ---- arrastrar el asistente: click sin mover = silenciar/despertar, arrastrar = moverlo ----
+function buddyPointerPos(e){
+  return e.touches ? e.touches[0] : e;
+}
+function startBuddyDrag(e){
+  buddyDragging = true;
+  buddyDragMoved = false;
+  buddyShakeSamples = [];
+  buddyShakeTriggered = false;
+  const p = buddyPointerPos(e);
+  const rect = buddyEl.getBoundingClientRect();
+  buddyDragOffsetX = p.clientX - rect.left;
+  buddyDragOffsetY = p.clientY - rect.top;
+  buddyEl.style.transition = 'none';
+  buddyEl.classList.add('dragging');
+  hideBuddyBubble();
+  drawBuddy('flat', false, false, true);
+  document.addEventListener('mousemove', onBuddyDrag);
+  document.addEventListener('touchmove', onBuddyDrag, {passive:false});
+  document.addEventListener('mouseup', endBuddyDrag);
+  document.addEventListener('touchend', endBuddyDrag);
+}
+function onBuddyDrag(e){
+  if(!buddyDragging) return;
+  if(e.cancelable) e.preventDefault();
+  const p = buddyPointerPos(e);
+  buddyDragMoved = true;
+  buddyEl.style.left = (p.clientX - buddyDragOffsetX) + 'px';
+  buddyEl.style.top = (p.clientY - buddyDragOffsetY) + 'px';
+  buddyEl.style.right = 'auto';
+  buddyEl.style.bottom = 'auto';
+
+  // Detección de "sacudida": varios cambios de dirección rápidos hacia los costados
+  if(!buddyShakeTriggered && !buddyMuted){
+    const now = Date.now();
+    buddyShakeSamples.push({x:p.clientX, t:now});
+    buddyShakeSamples = buddyShakeSamples.filter(s => now - s.t < 650);
+    if(buddyShakeSamples.length >= 5){
+      let reversals = 0, lastDir = 0;
+      for(let i=1;i<buddyShakeSamples.length;i++){
+        const dx = buddyShakeSamples[i].x - buddyShakeSamples[i-1].x;
+        if(Math.abs(dx) < 10) continue;
+        const dir = dx > 0 ? 1 : -1;
+        if(lastDir !== 0 && dir !== lastDir) reversals++;
+        lastDir = dir;
+      }
+      if(reversals >= 3){
+        buddyShakeTriggered = true;
+        triggerBuddyShake();
+      }
+    }
+  }
+}
+
+// Animación de mareo/susto al sacudir al asistente, y después le pide un tip con contexto (o el easter egg random)
+function triggerBuddyShake(){
+  buddyEl.classList.add('shaking');
+  if(buddyTalkAnim){ clearInterval(buddyTalkAnim); buddyTalkAnim = null; }
+  clearInterval(buddyRotateTimer);
+  hideBuddyBubble();
+  let frame = 0;
+  const dizzyLoop = setInterval(()=>{
+    drawBuddy('talk', false, false, false, false, true);
+    frame++;
+    if(frame > 6) clearInterval(dizzyLoop);
+  }, 120);
+  setTimeout(()=>{
+    clearInterval(dizzyLoop);
+    buddyEl.classList.remove('shaking');
+    drawBuddy(buddyDragging ? 'flat' : 'smile', false, false, buddyDragging);
+    showBuddyTip(true);
+  }, 850);
+}
+function endBuddyDrag(){
+  if(!buddyDragging) return;
+  buddyDragging = false;
+  buddyEl.classList.remove('dragging');
+  document.removeEventListener('mousemove', onBuddyDrag);
+  document.removeEventListener('touchmove', onBuddyDrag);
+  document.removeEventListener('mouseup', endBuddyDrag);
+  document.removeEventListener('touchend', endBuddyDrag);
+  if(!buddyDragMoved){
+    buddyMuted = !buddyMuted;
+    buddyEl.classList.toggle('muted', buddyMuted);
+    if(buddyMuted){ hideBuddyBubble(); drawBuddy('flat', false, true); }
+    else{ drawBuddy('smile', false, false); }
+  } else {
+    buddyCorner = 'free';
+    clampBuddyPosition();
+    drawBuddy('smile', false, buddyMuted);
+    buddyLastActivity = Date.now();
+  }
+}
+buddyEl.addEventListener('mousedown', startBuddyDrag);
+buddyEl.addEventListener('touchstart', startBuddyDrag, {passive:true});
+
+setInterval(()=>{
+  if(buddyMuted) return;
+  if(Date.now() < buddySnoozeUntil) return;
+  if(buddyBubbleVisible) return;
+  if(buddyIsBusy()) return;
+  if(buddyDragging) return;
+  const idle = Date.now() - buddyLastActivity;
+  if(idle > 22000 && Date.now() - buddyLastTipAt > 45000){
+    showBuddyTip();
+    return;
+  }
+  if(idle > 15000 && buddyCorner !== 'free' && !userIsActivelyEngaged() && Math.random() < 0.25){
+    moveBuddyRandom();
+  }
+}, 5000);
+
+applyBuddyCorner('br');
+drawBuddy('smile', false, false);
+scheduleBlink();
+
+// ---------- init ----------
+loadApiKey();
+loadProgress();
+loadLearnerProfile();
+loadSpeakPref();
+</script>
+</body>
+</html>
