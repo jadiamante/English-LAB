@@ -23,6 +23,7 @@
     --muted:#8FA0AD;
     --success:#7FB77E;
     --error:#D9776B;
+    --violet:#9B87D9;
     --radius:10px;
   }
   *{box-sizing:border-box;}
@@ -82,7 +83,19 @@
     width:104px;height:104px;flex:none;position:relative;
     display:flex;align-items:center;justify-content:center;
     filter:drop-shadow(0 6px 14px rgba(0,0,0,0.35));
+    cursor:pointer;
   }
+  .seal-explain{
+    position:absolute;top:110%;right:0;z-index:70;
+    width:260px;background:var(--navy-800);border:1px solid var(--navy-600);
+    border-radius:10px;padding:14px 16px;box-shadow:0 10px 24px rgba(0,0,0,0.4);
+    filter:none;
+  }
+  .seal-explain-row{
+    display:flex;justify-content:space-between;font-size:12px;
+    padding:4px 0;border-top:1px solid var(--navy-700);color:var(--ink);
+  }
+  .seal-explain-row:first-of-type{border-top:none;}
   .seal svg{width:100%;height:100%;}
   .seal .seal-level{
     position:absolute;
@@ -277,6 +290,16 @@
   #liveModeBtn.live-active{
     background:rgba(227,92,92,0.15);border-color:#E35C5C;color:#E35C5C;
     animation:micPulse 1.6s ease-in-out infinite;
+  }
+  .voice-config-btn{
+    background:rgba(155,135,217,0.14);border:1px solid var(--violet);color:var(--violet);
+    border-radius:8px;width:40px;height:40px;font-size:17px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .voice-config-btn:hover{background:rgba(155,135,217,0.25);}
+  .voice-profile-tag{
+    display:inline-block;font-size:11px;color:var(--violet);
+    font-family:'IBM Plex Mono',monospace;margin:-10px 0 10px;
   }
 
   /* Grammar quiz */
@@ -509,6 +532,7 @@
       </svg>
       <div class="seal-level" id="sealLevel">&ndash;</div>
       <div class="seal-pct" id="sealPct">SIN DATOS</div>
+      <div id="sealExplain" class="seal-explain" style="display:none;"></div>
     </div>
     <button class="settings-btn" id="openApiModal" title="Configurar la IA">⚙</button>
   </header>
@@ -550,8 +574,10 @@
           🔊 Escuchar las respuestas de la IA
         </label>
         <button class="secondary" id="liveModeBtn" type="button">🎙️ Charla en vivo</button>
+        <button class="voice-config-btn" id="voiceConfigBtn" type="button" title="Configurar voz (acento, tono, velocidad)">🎛️</button>
         <span id="liveModeStatus" class="status-line" style="display:none;margin:0;"></span>
       </div>
+      <span id="voiceProfileTag" class="voice-profile-tag" style="display:none;"></span>
       <div class="chat-log" id="chatLog"></div>
       <div id="convLoading" class="loading" style="display:none;"><span class="dot"></span> Escribiendo respuesta…</div>
       <div class="chat-input-row">
@@ -700,6 +726,42 @@
     <div class="modal-actions">
       <button class="primary" id="saveApiKey">Guardar</button>
       <button class="secondary" id="closeApiModal">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="voiceModalOverlay">
+  <div class="modal-box">
+    <h3>🎛️ Configurar la voz</h3>
+    <p class="hint">Elegí acento y tipo de voz, ajustá tono y velocidad, y guardalo como perfil para usar en la charla en vivo.</p>
+
+    <label class="field-label">PERFIL</label>
+    <select id="voiceProfileSelect"></select>
+
+    <label class="field-label">VOZ / ACENTO</label>
+    <select id="voiceSelect"></select>
+    <p class="hint" style="margin-top:-8px;">La lista sale de las voces que ya tiene instaladas tu navegador/dispositivo — varía según Chrome, Safari, Android o iOS.</p>
+
+    <label class="field-label">TONO (más grave ↔ más agudo): <span id="voicePitchVal">1.0</span></label>
+    <input type="range" id="voicePitchInput" min="0.5" max="2" step="0.1" value="1" style="width:100%;margin-bottom:16px;">
+
+    <label class="field-label">VELOCIDAD (más lento ↔ más rápido): <span id="voiceRateVal">1.0</span></label>
+    <input type="range" id="voiceRateInput" min="0.5" max="2" step="0.1" value="1" style="width:100%;margin-bottom:16px;">
+
+    <div class="modal-actions">
+      <button class="secondary" id="voiceTestBtn" type="button">▶ Probar voz</button>
+    </div>
+
+    <label class="field-label">GUARDAR COMO PERFIL NUEVO</label>
+    <div class="row" style="margin-bottom:4px;">
+      <input type="text" id="voiceProfileNameInput" placeholder="Ej: Profesora británica" style="flex:1;">
+      <button class="secondary" id="voiceProfileSaveBtn" type="button">Guardar</button>
+    </div>
+    <button class="advanced-toggle" id="voiceProfileDeleteBtn" type="button" style="display:none;">Eliminar el perfil seleccionado</button>
+
+    <div class="modal-actions">
+      <button class="primary" id="applyVoiceSettings">Usar esta voz ahora</button>
+      <button class="secondary" id="closeVoiceModal">Cerrar</button>
     </div>
   </div>
 </div>
@@ -984,12 +1046,16 @@ document.getElementById('advancedDetectBtn').addEventListener('click', detectAdv
 
 
 // ---------- Progress storage ----------
-let progress = { grammar:{correct:0,total:0}, writing:{count:0,lastScore:null}, reading:{correct:0,total:0}, conversation:{turns:0} };
+let progress = { grammar:{correct:0,total:0}, writing:{count:0,lastScore:null}, reading:{correct:0,total:0}, conversation:{turns:0,correctionCount:0,incoherentCount:0} };
 
 async function loadProgress(){
   try{
     const r = await storageGet('progress', false);
-    if(r && r.value) progress = JSON.parse(r.value);
+    if(r && r.value){
+      const saved = JSON.parse(r.value);
+      progress = Object.assign({}, progress, saved);
+      progress.conversation = Object.assign({ turns:0, correctionCount:0, incoherentCount:0 }, saved.conversation || {});
+    }
   }catch(e){ /* no data yet */ }
   updateSeal();
 }
@@ -1007,11 +1073,13 @@ async function loadLearnerProfile(){
     if(r && r.value) learnerProfile = Object.assign({ mistakeCategories:{}, vocabStruggles:[], levelEstimate:null, updatedAt:null }, JSON.parse(r.value));
   }catch(e){ /* sin datos todavía */ }
   renderWeakAreas();
+  updateSeal();
 }
 async function saveLearnerProfile(){
   learnerProfile.updatedAt = Date.now();
   try{ await storageSet('learner_profile', JSON.stringify(learnerProfile), false); }catch(e){ console.error(e); }
   renderWeakAreas();
+  updateSeal();
 }
 function recordMistakeCategory(category){
   if(!category) return;
@@ -1082,21 +1150,71 @@ function renderWeakAreas(){
 }
 
 
-function updateSeal(){
+// Evaluación real del nivel: combina la evaluación directa de la IA en Writing (la señal más confiable,
+// porque es un juicio holístico real) con precisión de gramática/lectura y con la salud de la conversación
+// (cuántos turnos tuvieron corrección, cuántos fueron incoherentes) — no un simple promedio de aciertos.
+function computeLevelAssessment(){
   const g = progress.grammar.total ? progress.grammar.correct/progress.grammar.total : null;
   const r = progress.reading.total ? progress.reading.correct/progress.reading.total : null;
-  const w = progress.writing.lastScore!==null ? progress.writing.lastScore/100 : null;
-  const vals = [g,r,w].filter(v=>v!==null);
+  const w = progress.writing.lastScore !== null ? progress.writing.lastScore/100 : null;
+  const convTurns = progress.conversation.turns || 0;
+  const convClean = convTurns >= 3
+    ? Math.max(0, 1 - ((progress.conversation.correctionCount||0) + (progress.conversation.incoherentCount||0)*1.5) / convTurns)
+    : null; // con menos de 3 turnos no hay suficiente data como para que cuente
+
+  const levelMap = { A2:38, B1:52, B2:66, C1:80, C2:93 };
+  const aiLevelScore = learnerProfile.levelEstimate ? levelMap[learnerProfile.levelEstimate] : null;
+
+  const parts = [];
+  if(aiLevelScore != null) parts.push({ label:'Evaluación de nivel (IA, writing o conversación)', pct: aiLevelScore, weight: 2.5 });
+  if(g !== null) parts.push({ label:'Precisión en gramática', pct: Math.round(g*100), weight: 1 });
+  if(r !== null) parts.push({ label:'Comprensión de lectura', pct: Math.round(r*100), weight: 1 });
+  if(w !== null) parts.push({ label:'Último puntaje de writing', pct: Math.round(w*100), weight: 1 });
+  if(convClean !== null) parts.push({ label:'Coherencia y corrección en conversación', pct: Math.round(convClean*100), weight: 1.5 });
+
+  if(!parts.length) return null;
+
+  const totalWeight = parts.reduce((s,p)=>s+p.weight,0);
+  const pct = Math.round(parts.reduce((s,p)=>s+p.pct*p.weight,0) / totalWeight);
+
+  let level;
+  if(pct>=88) level='C2';
+  else if(pct>=72) level='C1';
+  else if(pct>=52) level='B2';
+  else if(pct>=32) level='B1';
+  else level='A2';
+
+  return { pct, level, parts };
+}
+
+function updateSeal(){
   const pctEl = document.getElementById('sealPct');
   const lvlEl = document.getElementById('sealLevel');
-  if(vals.length===0){ pctEl.textContent="SIN DATOS"; lvlEl.textContent="–"; return; }
-  const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
-  const pct = Math.round(avg*100);
-  let level = "B1";
-  if(pct>=90) level="C2"; else if(pct>=75) level="C1"; else if(pct>=55) level="B2"; else level="B1";
-  lvlEl.textContent = level;
-  pctEl.textContent = pct + "%";
+  const assessment = computeLevelAssessment();
+  if(!assessment){ pctEl.textContent="SIN DATOS"; lvlEl.textContent="–"; return; }
+  lvlEl.textContent = assessment.level;
+  pctEl.textContent = assessment.pct + "%";
 }
+
+function toggleSealExplanation(){
+  const box = document.getElementById('sealExplain');
+  if(!box) return;
+  if(box.style.display === 'block'){ box.style.display = 'none'; return; }
+  const assessment = computeLevelAssessment();
+  if(!assessment){
+    box.innerHTML = '<p class="hint">Todavía no hay suficientes datos — hacé algún ejercicio de gramática, writing, lectura o conversación para que se pueda estimar tu nivel real.</p>';
+  } else {
+    const rows = assessment.parts.map(p => `<div class="seal-explain-row"><span>${p.label}</span><span>${p.pct}%</span></div>`).join('');
+    box.innerHTML = `
+      <p class="hint" style="margin-bottom:8px;">Nivel estimado: <strong>${assessment.level}</strong> (${assessment.pct}%), combinando lo que más pesa (evaluación de writing y conversación) con lo demás:</p>
+      ${rows}
+      <p class="hint" style="margin-top:8px;">Es una estimación orientativa para motivarte a practicar, no un resultado oficial de examen.</p>
+    `;
+  }
+  box.style.display = 'block';
+}
+document.getElementById('seal').addEventListener('click', toggleSealExplanation);
+
 
 // ---------- Tabs ----------
 document.querySelectorAll('.tab-btn').forEach(btn=>{
@@ -1125,6 +1243,28 @@ const contextLabels = {
   technical: "Conversación sobre un tema técnico o especializado",
   daily: "Vida cotidiana: viajes, compras, charla informal"
 };
+
+// Cada tantos turnos, le pedimos a la IA que evalúe el nivel real directo de la conversación misma —
+// así, si alguien solo usa Conversación y nunca hace un Writing, igual tenemos una evaluación real de la IA
+// (no solo el heurístico de corrección/coherencia), y el sello de nivel se alimenta automáticamente.
+const CONV_LEVEL_CHECK_EVERY = 6;
+let convLevelCheckInFlight = false;
+
+async function maybeAssessLevelFromConversation(){
+  if(convLevelCheckInFlight) return;
+  if(progress.conversation.turns % CONV_LEVEL_CHECK_EVERY !== 0) return;
+  if(convHistory.length < 4) return;
+  convLevelCheckInFlight = true;
+  try{
+    const recent = convHistory.slice(-16);
+    const system = `Sos un evaluador de nivel de inglés CEFR. Mirá esta conversación en inglés entre un estudiante hispanohablante y un asistente de práctica, y evaluá el nivel REAL del ESTUDIANTE (no del asistente) según el vocabulario, la gramática, la fluidez y la complejidad de las oraciones que usó — no según si el tema fue simple o complejo, sino según cómo lo expresó.
+Respondé ÚNICAMENTE con un objeto JSON válido, sin markdown: {"level_estimate":"A2|B1|B2|C1|C2"}`;
+    const raw = await callClaude(system, recent, 60, true);
+    const parsed = parseJsonLoose(raw);
+    if(parsed && parsed.level_estimate) recordLevelEstimate(parsed.level_estimate);
+  }catch(e){ /* si falla, no pasa nada — se sigue con la última evaluación que hubiera */ }
+  convLevelCheckInFlight = false;
+}
 
 function convSystemPrompt(){
   const ctx = contextLabels[document.getElementById('convContext').value];
@@ -1266,6 +1406,16 @@ function toggleMic(){
   speechRecognizer.start();
 }
 
+// ---------- Perfiles de voz: acento, tono y velocidad para la charla en vivo ----------
+let voiceProfiles = {}; // { nombre: { voiceURI, pitch, rate } }
+let activeVoiceProfileName = null;
+let currentVoiceSettings = { voiceURI: null, pitch: 1, rate: 0.98 };
+
+function findVoiceByURI(uri){
+  if(!uri || !window.speechSynthesis) return null;
+  return window.speechSynthesis.getVoices().find(v => v.voiceURI === uri) || null;
+}
+
 function pickEnglishVoice(){
   if(!window.speechSynthesis) return null;
   const voices = window.speechSynthesis.getVoices();
@@ -1295,10 +1445,11 @@ function speakText(text, onEnd){
   if(!window.speechSynthesis || !text){ if(onEnd) onEnd(); return; }
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'en-US';
-  const voice = pickEnglishVoice();
-  if(voice) utter.voice = voice;
-  utter.rate = 0.98;
+  const chosenVoice = findVoiceByURI(currentVoiceSettings.voiceURI) || pickEnglishVoice();
+  utter.lang = (chosenVoice && chosenVoice.lang) || 'en-US';
+  if(chosenVoice) utter.voice = chosenVoice;
+  utter.pitch = currentVoiceSettings.pitch;
+  utter.rate = currentVoiceSettings.rate;
   if(onEnd){
     utter.onend = onEnd;
     utter.onerror = onEnd;
@@ -1327,6 +1478,169 @@ if(speakToggleEl){
     try{ await storageSet('speak_enabled', speakEnabled ? '1' : '0', false); }catch(err){}
   });
 }
+
+// ---------- Modal de configuración de voz ----------
+async function loadVoiceProfiles(){
+  try{
+    const r = await storageGet('voice_profiles', false);
+    if(r && r.value){
+      const parsed = JSON.parse(r.value);
+      voiceProfiles = parsed.profiles || {};
+      activeVoiceProfileName = parsed.active || null;
+      if(activeVoiceProfileName && voiceProfiles[activeVoiceProfileName]){
+        currentVoiceSettings = Object.assign({}, voiceProfiles[activeVoiceProfileName]);
+      }
+    }
+  }catch(e){ /* sin perfiles guardados aún */ }
+  updateVoiceProfileTag();
+}
+async function saveVoiceProfilesToStorage(){
+  try{
+    await storageSet('voice_profiles', JSON.stringify({ profiles: voiceProfiles, active: activeVoiceProfileName }), false);
+  }catch(e){}
+}
+function updateVoiceProfileTag(){
+  const tag = document.getElementById('voiceProfileTag');
+  if(!tag) return;
+  if(activeVoiceProfileName){
+    tag.textContent = '🎛️ Voz: ' + activeVoiceProfileName;
+    tag.style.display = 'inline-block';
+  } else {
+    tag.style.display = 'none';
+  }
+}
+
+function populateVoiceSelect(){
+  const sel = document.getElementById('voiceSelect');
+  if(!sel || !window.speechSynthesis) return;
+  const voices = window.speechSynthesis.getVoices();
+  const englishFirst = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+  const rest = voices.filter(v => !(v.lang && v.lang.toLowerCase().startsWith('en')));
+  sel.innerHTML = '';
+  [...englishFirst, ...rest].forEach(v=>{
+    const opt = document.createElement('option');
+    opt.value = v.voiceURI;
+    opt.textContent = `${v.name} (${v.lang})`;
+    sel.appendChild(opt);
+  });
+  if(currentVoiceSettings.voiceURI) sel.value = currentVoiceSettings.voiceURI;
+}
+
+function populateVoiceProfileSelect(){
+  const sel = document.getElementById('voiceProfileSelect');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Sin perfil (ajuste manual) —</option>';
+  Object.keys(voiceProfiles).forEach(name=>{
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  sel.value = activeVoiceProfileName || '';
+  document.getElementById('voiceProfileDeleteBtn').style.display = activeVoiceProfileName ? 'inline-block' : 'none';
+}
+
+function openVoiceModal(){
+  populateVoiceSelect();
+  populateVoiceProfileSelect();
+  document.getElementById('voicePitchInput').value = currentVoiceSettings.pitch;
+  document.getElementById('voicePitchVal').textContent = currentVoiceSettings.pitch.toFixed(1);
+  document.getElementById('voiceRateInput').value = currentVoiceSettings.rate;
+  document.getElementById('voiceRateVal').textContent = currentVoiceSettings.rate.toFixed(1);
+  document.getElementById('voiceProfileNameInput').value = '';
+  document.getElementById('voiceModalOverlay').classList.add('show');
+}
+function closeVoiceModal(){
+  document.getElementById('voiceModalOverlay').classList.remove('show');
+}
+
+document.getElementById('voiceConfigBtn').addEventListener('click', openVoiceModal);
+document.getElementById('closeVoiceModal').addEventListener('click', closeVoiceModal);
+document.getElementById('voiceModalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'voiceModalOverlay') closeVoiceModal();
+});
+
+document.getElementById('voicePitchInput').addEventListener('input', (e)=>{
+  document.getElementById('voicePitchVal').textContent = parseFloat(e.target.value).toFixed(1);
+});
+document.getElementById('voiceRateInput').addEventListener('input', (e)=>{
+  document.getElementById('voiceRateVal').textContent = parseFloat(e.target.value).toFixed(1);
+});
+
+document.getElementById('voiceProfileSelect').addEventListener('change', (e)=>{
+  const name = e.target.value;
+  if(!name){
+    document.getElementById('voiceProfileDeleteBtn').style.display = 'none';
+    return;
+  }
+  const profile = voiceProfiles[name];
+  if(!profile) return;
+  document.getElementById('voiceSelect').value = profile.voiceURI || '';
+  document.getElementById('voicePitchInput').value = profile.pitch;
+  document.getElementById('voicePitchVal').textContent = profile.pitch.toFixed(1);
+  document.getElementById('voiceRateInput').value = profile.rate;
+  document.getElementById('voiceRateVal').textContent = profile.rate.toFixed(1);
+  document.getElementById('voiceProfileDeleteBtn').style.display = 'inline-block';
+});
+
+document.getElementById('voiceTestBtn').addEventListener('click', ()=>{
+  const voiceURI = document.getElementById('voiceSelect').value;
+  const pitch = parseFloat(document.getElementById('voicePitchInput').value);
+  const rate = parseFloat(document.getElementById('voiceRateInput').value);
+  const prev = currentVoiceSettings;
+  currentVoiceSettings = { voiceURI, pitch, rate };
+  speakText("Hi! This is how I'll sound in the live chat.");
+  currentVoiceSettings = prev; // la prueba no pisa la configuración activa hasta que toques "Usar esta voz ahora"
+});
+
+document.getElementById('voiceProfileSaveBtn').addEventListener('click', async ()=>{
+  const nameInput = document.getElementById('voiceProfileNameInput');
+  const name = nameInput.value.trim();
+  if(!name){ alert('Ponele un nombre al perfil antes de guardarlo.'); return; }
+  voiceProfiles[name] = {
+    voiceURI: document.getElementById('voiceSelect').value,
+    pitch: parseFloat(document.getElementById('voicePitchInput').value),
+    rate: parseFloat(document.getElementById('voiceRateInput').value)
+  };
+  activeVoiceProfileName = name;
+  currentVoiceSettings = Object.assign({}, voiceProfiles[name]);
+  await saveVoiceProfilesToStorage();
+  updateVoiceProfileTag();
+  populateVoiceProfileSelect();
+  nameInput.value = '';
+});
+
+document.getElementById('voiceProfileDeleteBtn').addEventListener('click', async ()=>{
+  const sel = document.getElementById('voiceProfileSelect');
+  const name = sel.value;
+  if(!name || !voiceProfiles[name]) return;
+  if(!confirm(`¿Eliminar el perfil "${name}"?`)) return;
+  delete voiceProfiles[name];
+  if(activeVoiceProfileName === name) activeVoiceProfileName = null;
+  await saveVoiceProfilesToStorage();
+  updateVoiceProfileTag();
+  populateVoiceProfileSelect();
+});
+
+document.getElementById('applyVoiceSettings').addEventListener('click', async ()=>{
+  const sel = document.getElementById('voiceProfileSelect');
+  activeVoiceProfileName = sel.value || null;
+  currentVoiceSettings = {
+    voiceURI: document.getElementById('voiceSelect').value,
+    pitch: parseFloat(document.getElementById('voicePitchInput').value),
+    rate: parseFloat(document.getElementById('voiceRateInput').value)
+  };
+  await saveVoiceProfilesToStorage();
+  updateVoiceProfileTag();
+  closeVoiceModal();
+});
+
+if(window.speechSynthesis){
+  window.speechSynthesis.onvoiceschanged = ()=>{
+    if(document.getElementById('voiceModalOverlay').classList.contains('show')) populateVoiceSelect();
+  };
+}
+
 initMicButton();
 
 // ---------- Modo "Charla en vivo": graba tu voz, la transcribe una IA real (Groq Whisper) y sigue el ida y vuelta sola ----------
@@ -1777,7 +2091,10 @@ async function sendChatMessage(){
     else if(!parsed.correction) buddyCelebrate('conversation');
     convHistory.push({role:"assistant", content:reply});
     progress.conversation.turns++;
+    if(parsed.correction) progress.conversation.correctionCount++;
+    if(parsed.incoherent) progress.conversation.incoherentCount++;
     saveProgress();
+    maybeAssessLevelFromConversation(); // en segundo plano, no se espera
   }catch(e){
     appendMsg('system', 'Error al conectar con la IA. Intentá de nuevo.');
     if(liveMode){
@@ -3176,6 +3493,7 @@ loadApiKey();
 loadProgress();
 loadLearnerProfile();
 loadSpeakPref();
+loadVoiceProfiles();
 
 // ---------- Código QR para compartir la app (se genera acá mismo, nunca se manda a un servicio externo) ----------
 const QR_TARGET_URL = 'https://jadiamante.github.io/English-LAB/english-lab.html';
