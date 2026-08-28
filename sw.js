@@ -7,7 +7,7 @@
 const CACHE_NAME = 'english-lab-v1';
 const APP_SHELL = [
   './',
-  './index.html'
+  './english-lab.html'
 ];
 
 self.addEventListener('install', (event) => {

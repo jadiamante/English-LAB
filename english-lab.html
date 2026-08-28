@@ -146,6 +146,10 @@
     background:none;border:none;color:var(--muted);font-size:12.5px;
     cursor:pointer;padding:0;margin-bottom:14px;text-decoration:underline;
   }
+  .qr-section{
+    border-top:1px solid var(--navy-600);padding-top:16px;margin-top:4px;margin-bottom:16px;
+  }
+  #qrCanvas{image-rendering:pixelated;border-radius:6px;background:#fff;padding:8px;}
 
   /* ---- Tabs ---- */
   nav.tabs{display:flex;gap:6px;margin-bottom:26px;flex-wrap:wrap;}
@@ -315,6 +319,7 @@
     right:24px; bottom:24px; left:auto; top:auto;
     transition: right 1.1s cubic-bezier(.4,0,.2,1), bottom 1.1s cubic-bezier(.4,0,.2,1), left 1.1s cubic-bezier(.4,0,.2,1), top 1.1s cubic-bezier(.4,0,.2,1);
     user-select:none;
+    touch-action:none; /* así arrastrarlo con el dedo no también scrollea la página */
   }
   .buddy canvas{
     width:72px;height:72px;
@@ -679,6 +684,16 @@
       <input type="text" id="advancedKeyInput" placeholder="dejalo vacío si no aplica">
       <div id="advancedStatus" class="status-line"></div>
       <button class="secondary" id="advancedDetectBtn" type="button" style="margin-bottom:14px;">Detectar servidor</button>
+    </div>
+
+    <div class="qr-section">
+      <label class="field-label">COMPARTIR LA APP</label>
+      <p class="hint" style="margin-bottom:10px;">Generá un código QR que abre esta app en otro celular. Se genera acá mismo, en tu navegador — no se manda a ningún servicio externo.</p>
+      <button class="secondary" id="showQrBtn" type="button">📱 Mostrar código QR</button>
+      <div id="qrWrap" style="display:none;margin-top:12px;text-align:center;">
+        <canvas id="qrCanvas"></canvas>
+        <p class="hint" style="margin:8px 0 0;">Escaneala con la cámara de otro celular.</p>
+      </div>
     </div>
 
     <div class="modal-actions">
@@ -1364,16 +1379,38 @@ async function toggleLiveMode(){
     alert('Tu navegador no soporta grabación de audio (probá con Chrome, Edge, Firefox o Safari actualizados) — necesaria para la charla en vivo.');
     return;
   }
-  if(!AI_SETTINGS.groq.key){
-    alert('La charla en vivo transcribe tu voz con Groq (Whisper), así que necesitás cargar tu API key de Groq en Configuración — aunque uses otro proveedor para el texto. Es gratis en console.groq.com/keys.');
-    return;
-  }
   if(liveMode){
     liveMode = false;
     setLiveModeUI(false);
     setLiveStatus('');
     stopLiveListening();
     return;
+  }
+
+  const offline = !navigator.onLine;
+  if(offline){
+    if(!localGenerator){
+      alert('Estás sin conexión y todavía no tenés el modelo local de texto descargado, así que no se puede generar la conversación. Conectate una vez para descargarlo desde Configuración → Local, o esperá a tener señal.');
+      return;
+    }
+    const hasWebGPU = !!navigator.gpu;
+    const proceed = confirm(
+      'Estás sin conexión a internet.\n\n' +
+      'La charla en vivo va a transcribir tu voz con un modelo chico local (Whisper) en vez de Groq, y las respuestas también se van a generar localmente.\n\n' +
+      (hasWebGPU
+        ? 'Tu navegador soporta aceleración por GPU, así que debería andar razonable.'
+        : 'Tu navegador no tiene aceleración por GPU disponible, así que puede ser BASTANTE más lento que de costumbre (varios segundos por turno).') +
+      '\n\n¿Querés continuar igual?'
+    );
+    if(!proceed) return;
+    liveUsingLocalSTT = true;
+    AI_PROVIDER = 'local'; // por las dudas, nos aseguramos de que el texto también salga local
+  } else {
+    liveUsingLocalSTT = false;
+    if(!AI_SETTINGS.groq.key){
+      alert('La charla en vivo transcribe tu voz con Groq (Whisper), así que necesitás cargar tu API key de Groq en Configuración — aunque uses otro proveedor para el texto. Es gratis en console.groq.com/keys.');
+      return;
+    }
   }
 
   // Todo esto corre solo, en segundo plano, antes de dejarte hablar en serio
@@ -1394,6 +1431,16 @@ async function toggleLiveMode(){
     teardownLiveMic();
     alert('El micrófono se detectó pero no está entregando audio. Probá recargar la página o revisar que ninguna otra app lo esté usando.');
     return;
+  }
+  if(liveUsingLocalSTT){
+    const asr = await loadLocalASR();
+    if(!asr){
+      btn.disabled = false;
+      setLiveStatus('');
+      teardownLiveMic();
+      alert('No pude cargar el transcriptor local en este navegador. Probá de nuevo cuando tengas conexión.');
+      return;
+    }
   }
   // Safari/iOS necesitan un instante extra para que el pipeline de audio se asiente antes de grabar en serio
   if(isSafariOrIOS){
@@ -1589,12 +1636,71 @@ async function transcribeWithGroq(blob){
   return (await res.text()).trim();
 }
 
+// ---------- Transcripción local (sin internet): Whisper chico corriendo en el navegador ----------
+// Se usa como respaldo cuando no hay conexión — usa la GPU del dispositivo si está disponible (WebGPU),
+// y si no, cae automáticamente a CPU (WASM), que es bastante más lento pero funciona igual.
+const LOCAL_ASR_MODEL_ID = 'onnx-community/whisper-tiny.en';
+let localASR = null;
+let localASRLoading = false;
+let liveUsingLocalSTT = false;
+
+async function loadLocalASR(){
+  if(localASR) return localASR;
+  if(localASRLoading){
+    while(localASRLoading) await new Promise(r => setTimeout(r, 200));
+    return localASR;
+  }
+  localASRLoading = true;
+  const hasWebGPU = !!navigator.gpu;
+  setLiveStatus(`Descargando transcriptor local (${hasWebGPU ? 'con GPU' : 'sin GPU, puede ser lento'})… esperá`);
+  try{
+    const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
+    localASR = await pipeline('automatic-speech-recognition', LOCAL_ASR_MODEL_ID, {
+      dtype: 'q8',
+      device: hasWebGPU ? 'webgpu' : undefined,
+      progress_callback: (p)=>{
+        if(p && p.status === 'progress' && typeof p.progress === 'number'){
+          setLiveStatus(`Descargando transcriptor local… ${Math.round(p.progress)}%`);
+        }
+      }
+    });
+  }catch(e){
+    console.error('No se pudo cargar el transcriptor local', e);
+    localASR = null;
+  }
+  localASRLoading = false;
+  return localASR;
+}
+
+async function blobToFloat32Audio(blob){
+  const arrayBuffer = await blob.arrayBuffer();
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  const data = audioBuffer.getChannelData(0).slice(); // copia, para poder cerrar el contexto ya
+  try{ await audioCtx.close(); }catch(e){}
+  return data;
+}
+
+async function transcribeLocally(blob){
+  const asr = await loadLocalASR();
+  if(!asr) throw new Error('No se pudo cargar el transcriptor local en este navegador.');
+  const audioData = await blobToFloat32Audio(blob);
+  const result = await asr(audioData, { language: 'english', task: 'transcribe' });
+  return ((result && result.text) || '').trim();
+}
+
+// Elige Groq (rápido, necesita internet) o el transcriptor local (más lento, sin internet), según corresponda
+async function transcribeAudioTurn(blob){
+  if(liveUsingLocalSTT) return await transcribeLocally(blob);
+  return await transcribeWithGroq(blob);
+}
+
 async function transcribeAndSend(blob){
   const input = document.getElementById('chatInput');
   const originalPlaceholder = input.placeholder;
-  input.placeholder = 'Transcribiendo tu audio…';
+  input.placeholder = liveUsingLocalSTT ? 'Transcribiendo localmente (puede tardar)…' : 'Transcribiendo tu audio…';
   try{
-    const text = await transcribeWithGroq(blob);
+    const text = await transcribeAudioTurn(blob);
     input.placeholder = originalPlaceholder;
     if(text && text.length > 1){
       input.value = text;
@@ -2869,6 +2975,7 @@ function enableDeviceShakeDetection(){
 }
 
 function startBuddyDrag(e){
+  if(e.cancelable) e.preventDefault(); // refuerzo extra: que el toque sea SOLO para el asistente, nunca para scrollear la página
   if(isMobileDevice) enableDeviceShakeDetection();
   buddyDragging = true;
   buddyDragMoved = false;
@@ -2959,7 +3066,7 @@ function endBuddyDrag(){
   }
 }
 buddyEl.addEventListener('mousedown', startBuddyDrag);
-buddyEl.addEventListener('touchstart', startBuddyDrag, {passive:true});
+buddyEl.addEventListener('touchstart', startBuddyDrag, {passive:false});
 
 setInterval(()=>{
   if(buddyMuted) return;
@@ -3000,6 +3107,11 @@ function handleOffline(){
   if(wasOffline) return;
   wasOffline = true;
   providerBeforeOffline = AI_PROVIDER;
+  if(liveMode){
+    // Se cortó la conexión a mitad de una charla en vivo: pasamos la transcripción a local para el próximo turno
+    liveUsingLocalSTT = true;
+    if(!localASR) loadLocalASR(); // la vamos descargando de una, para que esté lista antes del próximo turno
+  }
   if(AI_PROVIDER !== 'local' && localGenerator){
     // Ya tenías el modelo local descargado: lo usamos automáticamente mientras no haya internet
     AI_PROVIDER = 'local';
@@ -3014,6 +3126,7 @@ function handleOffline(){
 function handleOnline(){
   if(!wasOffline) return;
   wasOffline = false;
+  liveUsingLocalSTT = false; // al volver la señal, la charla en vivo vuelve a transcribir con Groq
   if(providerBeforeOffline){
     AI_PROVIDER = providerBeforeOffline;
     providerBeforeOffline = null;
@@ -3038,6 +3151,73 @@ loadApiKey();
 loadProgress();
 loadLearnerProfile();
 loadSpeakPref();
+
+// ---------- Código QR para compartir la app (se genera acá mismo, nunca se manda a un servicio externo) ----------
+const QR_TARGET_URL = 'https://jadiamante.github.io/English-LAB/english-lab.html';
+let qrLibPromise = null;
+
+function loadQrLib(){
+  if(window.qrcode) return Promise.resolve(window.qrcode);
+  if(qrLibPromise) return qrLibPromise;
+  qrLibPromise = new Promise((resolve, reject)=>{
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
+    script.onload = ()=> resolve(window.qrcode);
+    script.onerror = ()=> reject(new Error('No se pudo cargar el generador de QR.'));
+    document.head.appendChild(script);
+  });
+  return qrLibPromise;
+}
+
+function drawQrToCanvas(qr, canvas){
+  const count = qr.getModuleCount();
+  const cell = Math.max(1, Math.floor(220 / count));
+  const size = cell * count;
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = '#000000';
+  for(let row = 0; row < count; row++){
+    for(let col = 0; col < count; col++){
+      if(qr.isDark(row, col)) ctx.fillRect(col*cell, row*cell, cell, cell);
+    }
+  }
+}
+
+async function showAppQR(){
+  const wrap = document.getElementById('qrWrap');
+  const canvas = document.getElementById('qrCanvas');
+  const btn = document.getElementById('showQrBtn');
+  if(wrap.style.display === 'block'){
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'block';
+  if(canvas.dataset.rendered === '1') return;
+  btn.disabled = true;
+  try{
+    const qrcodeLib = await loadQrLib();
+    let qr;
+    try{
+      qr = qrcodeLib(0, 'M'); // 0 = ajusta el tamaño solo según lo que haga falta
+      qr.addData(QR_TARGET_URL);
+      qr.make();
+    }catch(e){
+      qr = qrcodeLib(10, 'M'); // respaldo con un tamaño fijo si el automático falla
+      qr.addData(QR_TARGET_URL);
+      qr.make();
+    }
+    drawQrToCanvas(qr, canvas);
+    canvas.dataset.rendered = '1';
+  }catch(e){
+    wrap.innerHTML = '<p class="hint">No se pudo generar el código QR. Revisá tu conexión e intentá de nuevo.</p>';
+  }
+  btn.disabled = false;
+}
+
+document.getElementById('showQrBtn').addEventListener('click', showAppQR);
 </script>
 </body>
 </html>
