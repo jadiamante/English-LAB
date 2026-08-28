@@ -2,7 +2,11 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#141B24">
 <title>Inglés para Guille</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -211,7 +215,7 @@
     border:1px solid var(--navy-600);
     color:var(--ink);
     font-family:'Inter',sans-serif;
-    font-size:14px;
+    font-size:16px;
     padding:10px 12px;
     border-radius:7px;
     width:100%;
@@ -398,6 +402,56 @@
     cursor:pointer;
   }
   .buddy-bubble button:hover{background:var(--navy-700);}
+
+  /* ---- Responsive: tablets y celulares ---- */
+  @media (max-width: 720px){
+    body{padding:16px 12px 90px;} /* más aire abajo para no chocar con el asistente/teclado */
+    .wrap{max-width:100%;}
+    header{gap:14px;padding-bottom:16px;margin-bottom:18px;}
+    h1{font-size:24px;}
+    .subtitle{font-size:13.5px;max-width:100%;}
+    .seal{width:72px;height:72px;}
+    .seal .seal-level{font-size:16px;}
+    .seal .seal-pct{font-size:7.5px;}
+    nav.tabs{
+      flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+      margin:0 -12px 20px;padding:0 12px 4px;gap:8px;
+      scrollbar-width:thin;
+    }
+    .tab-btn{flex:none;font-size:11.5px;padding:10px 12px;white-space:nowrap;}
+    .card{padding:16px;border-radius:8px;}
+    .card h2{font-size:17px;}
+    .row{gap:10px;}
+    .row > div{min-width:100%;}
+    .modal-box{padding:18px;max-width:100%;}
+    .chat-input-row{gap:8px;}
+    .chat-input-row textarea{min-height:46px;font-size:16px;}
+    .mic-btn{width:46px;min-width:46px;height:46px;font-size:18px;}
+    button.primary, button.secondary{padding:11px 14px;font-size:13px;}
+    .msg{max-width:92%;}
+    .chat-log{max-height:52vh;}
+    .weak-areas{gap:5px;}
+    .weak-chip{font-size:10px;padding:3px 7px;}
+
+    /* El asistente ocupa menos espacio y se acerca más a los bordes para no tapar contenido */
+    .buddy canvas{width:56px;height:56px;}
+    .buddy-bubble{max-width:min(260px, calc(100vw - 32px));}
+  }
+
+  @media (max-width: 420px){
+    h1{font-size:21px;}
+    .tab-btn{font-size:11px;padding:9px 10px;}
+    .options .opt-btn{font-size:13px;padding:10px 12px;}
+  }
+
+  /* Notch / home-indicator de iPhone */
+  @supports (padding: max(0px)){
+    body{
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(12px, env(safe-area-inset-right));
+      padding-bottom: max(60px, env(safe-area-inset-bottom));
+    }
+  }
 </style>
 </head>
 <body>
@@ -465,6 +519,7 @@
           🔊 Escuchar las respuestas de la IA
         </label>
         <button class="secondary" id="liveModeBtn" type="button">🎙️ Charla en vivo</button>
+        <span id="liveModeStatus" class="status-line" style="display:none;margin:0;"></span>
       </div>
       <div class="chat-log" id="chatLog"></div>
       <div id="convLoading" class="loading" style="display:none;"><span class="dot"></span> Escribiendo respuesta…</div>
@@ -1178,6 +1233,23 @@ function pickEnglishVoice(){
     || null;
 }
 
+// iOS/Safari solo deja "hablar" por primera vez si la llamada está bien pegada a un toque real del usuario.
+// Desbloqueamos el motor de voz una sola vez, apenas el usuario toca cualquier parte de la página.
+let audioUnlocked = false;
+function unlockAudioOnce(){
+  if(audioUnlocked) return;
+  audioUnlocked = true;
+  if(window.speechSynthesis){
+    try{
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+}
+document.addEventListener('touchend', unlockAudioOnce, { once: true, passive: true });
+document.addEventListener('click', unlockAudioOnce, { once: true });
+
 function speakText(text, onEnd){
   if(!window.speechSynthesis || !text){ if(onEnd) onEnd(); return; }
   window.speechSynthesis.cancel();
@@ -1216,12 +1288,27 @@ if(speakToggleEl){
 }
 initMicButton();
 
-// ---------- Modo "Charla en vivo": escucha, envía sola, lee la respuesta, y vuelve a escuchar ----------
+// ---------- Modo "Charla en vivo": graba tu voz, la transcribe una IA real (Groq Whisper) y sigue el ida y vuelta sola ----------
+// No usamos SpeechRecognition acá: es el motor flojo/inestable del navegador que se trababa.
+// En cambio: grabamos audio real (MediaRecorder, estable) y detectamos el silencio nosotros mismos por volumen.
 let liveMode = false;
 let liveModeSpeaking = false;
 let liveTurnInProgress = false;
-let liveSilenceTimer = null;
-let liveTranscriptFinal = '';
+let liveMediaStream = null;
+let liveAudioContext = null;
+let liveAnalyser = null;
+let liveRecorder = null;
+let liveRecordedChunks = [];
+let liveVadFrame = null;
+let liveSpeechStarted = false;
+let liveLastLoudAt = 0;
+let liveRecordStartAt = 0;
+let liveCalibSamples = [];
+let liveThreshold = null;
+
+const LIVE_SILENCE_MS = 1100;
+const LIVE_CALIB_MS = 300;
+const LIVE_MAX_RECORD_MS = 20000;
 
 function setLiveModeUI(active){
   const btn = document.getElementById('liveModeBtn');
@@ -1230,104 +1317,306 @@ function setLiveModeUI(active){
   btn.classList.toggle('live-active', active);
 }
 
-function toggleLiveMode(){
-  if(!speechRecognitionSupported()){
-    alert('Tu navegador no soporta dictado por voz (probá con Chrome o Edge) — necesario para la charla en vivo.');
+function liveModeSupported(){
+  return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+}
+
+function setLiveStatus(text){
+  const el = document.getElementById('liveModeStatus');
+  if(!el) return;
+  if(text){ el.textContent = text; el.style.display = 'inline'; }
+  else { el.style.display = 'none'; el.textContent = ''; }
+}
+
+async function toggleLiveMode(){
+  if(!liveModeSupported()){
+    alert('Tu navegador no soporta grabación de audio (probá con Chrome, Edge o Firefox actualizados) — necesaria para la charla en vivo.');
     return;
   }
-  liveMode = !liveMode;
-  setLiveModeUI(liveMode);
+  if(!AI_SETTINGS.groq.key){
+    alert('La charla en vivo transcribe tu voz con Groq (Whisper), así que necesitás cargar tu API key de Groq en Configuración — aunque uses otro proveedor para el texto. Es gratis en console.groq.com/keys.');
+    return;
+  }
   if(liveMode){
-    startLiveListening();
-  } else {
+    liveMode = false;
+    setLiveModeUI(false);
+    setLiveStatus('');
     stopLiveListening();
+    return;
+  }
+
+  // Todo esto corre solo, en segundo plano, antes de dejarte hablar en serio
+  const btn = document.getElementById('liveModeBtn');
+  btn.disabled = true;
+  setLiveStatus('Inicializando micrófono… esperá');
+  const micResult = await ensureLiveMic();
+  if(!micResult.ok){
+    btn.disabled = false;
+    setLiveStatus('');
+    alert(micResult.message);
+    return;
+  }
+  setLiveStatus('Verificando que el audio se capture bien…');
+  const testResult = await selfTestRecorder();
+  btn.disabled = false;
+  if(!testResult.ok){
+    setLiveStatus('');
+    teardownLiveMic();
+    alert('El micrófono se detectó, pero no logré grabar audio de prueba (' + testResult.message + '). Probá recargar la página o revisar que ninguna otra app lo esté usando.');
+    return;
+  }
+  setLiveStatus('');
+  liveMode = true;
+  setLiveModeUI(true);
+  startLiveListening();
+}
+
+// Graba un fragmento muy corto en silencio para confirmar que el MediaRecorder realmente funciona en este navegador,
+// antes de meter al usuario en una charla que podría fallar recién a mitad de camino.
+function selfTestRecorder(){
+  return new Promise((resolve)=>{
+    const mime = pickRecorderMime();
+    let rec;
+    try{
+      rec = mime ? new MediaRecorder(liveMediaStream, { mimeType: mime }) : new MediaRecorder(liveMediaStream);
+    }catch(e){
+      resolve({ ok: false, message: e.message });
+      return;
+    }
+    let gotData = false;
+    const timeout = setTimeout(()=>{
+      if(rec.state !== 'inactive') try{ rec.stop(); }catch(e){}
+    }, 500);
+    rec.ondataavailable = (e)=>{ if(e.data && e.data.size > 0) gotData = true; };
+    rec.onerror = (e)=>{
+      clearTimeout(timeout);
+      resolve({ ok: false, message: (e.error && e.error.message) || 'error de grabación' });
+    };
+    rec.onstop = ()=>{
+      clearTimeout(timeout);
+      resolve(gotData ? { ok: true } : { ok: false, message: 'no se recibieron datos de audio' });
+    };
+    try{
+      rec.start();
+    }catch(e){
+      clearTimeout(timeout);
+      resolve({ ok: false, message: e.message });
+    }
+  });
+}
+
+function micErrorMessage(error){
+  switch(error && error.name){
+    case 'NotAllowedError':
+    case 'PermissionDeniedError':
+      return 'Le negaste el permiso de micrófono al navegador (o tu navegador lo bloqueó). Revisá el ícono de candado/cámara en la barra de direcciones y habilitalo para este sitio.';
+    case 'NotFoundError':
+    case 'DevicesNotFoundError':
+      return 'No se encontró ningún micrófono disponible en tu dispositivo.';
+    case 'NotReadableError':
+    case 'TrackStartError':
+      return 'El micrófono está siendo usado por otra app (Zoom, Meet, Discord, etc.) o por otra pestaña. Cerrala e intentá de nuevo.';
+    case 'OverconstrainedError':
+      return 'La configuración de audio pedida no es compatible con tu micrófono.';
+    case 'SecurityError':
+      return 'El navegador bloqueó el micrófono por seguridad: la app tiene que abrirse por HTTPS (o localhost), no puede ser un archivo local ni una IP sin certificado.';
+    default:
+      return 'No pude acceder al micrófono (' + ((error && error.name) || 'error desconocido') + ').';
   }
 }
 
-// Escucha de forma continua; nosotros mismos detectamos el silencio (no confiamos en que el navegador corte solo, es poco confiable)
-function startLiveListening(){
+async function ensureLiveMic(){
+  if(liveMediaStream) return { ok: true };
+  try{
+    // API moderna basada en promesas — la única soportada en Firefox actual (navigator.getUserMedia legado no existe más)
+    liveMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  }catch(e){
+    return { ok: false, message: micErrorMessage(e) };
+  }
+  try{
+    liveAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    // Firefox (y Chrome) pueden dejar el AudioContext "suspended" hasta que se reanude explícitamente tras un gesto del usuario
+    if(liveAudioContext.state === 'suspended'){
+      await liveAudioContext.resume();
+    }
+    const source = liveAudioContext.createMediaStreamSource(liveMediaStream);
+    liveAnalyser = liveAudioContext.createAnalyser();
+    liveAnalyser.fftSize = 512;
+    source.connect(liveAnalyser);
+  }catch(e){
+    liveMediaStream.getTracks().forEach(t => t.stop());
+    liveMediaStream = null;
+    return { ok: false, message: 'No pude inicializar el análisis de audio (' + e.message + ').' };
+  }
+  return { ok: true };
+}
+
+function currentVolume(){
+  const data = new Uint8Array(liveAnalyser.frequencyBinCount);
+  liveAnalyser.getByteTimeDomainData(data);
+  let sum = 0;
+  for(let i = 0; i < data.length; i++){
+    const v = (data[i] - 128) / 128;
+    sum += v * v;
+  }
+  return Math.sqrt(sum / data.length);
+}
+
+function pickRecorderMime(){
+  const options = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+  for(const m of options){ if(window.MediaRecorder.isTypeSupported(m)) return m; }
+  return '';
+}
+
+async function startLiveListening(){
   if(!liveMode || liveModeSpeaking || liveTurnInProgress) return;
-  if(speechRecognizer){ try{ speechRecognizer.onend = null; speechRecognizer.stop(); }catch(e){} }
-  const micBtn = document.getElementById('micBtn');
-  const input = document.getElementById('chatInput');
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  speechRecognizer = new SR();
-  speechRecognizer.lang = 'en-US';
-  speechRecognizer.continuous = true;
-  speechRecognizer.interimResults = true;
-  speechRecognizer.maxAlternatives = 1;
-  liveTranscriptFinal = '';
-  input.value = '';
+  const micResult = await ensureLiveMic();
+  if(!micResult.ok){
+    liveMode = false;
+    setLiveModeUI(false);
+    alert(micResult.message);
+    return;
+  }
+  const mime = pickRecorderMime();
+  try{
+    liveRecorder = mime ? new MediaRecorder(liveMediaStream, { mimeType: mime }) : new MediaRecorder(liveMediaStream);
+  }catch(e){
+    liveRecorder = new MediaRecorder(liveMediaStream);
+  }
+  liveRecordedChunks = [];
+  liveRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size > 0) liveRecordedChunks.push(e.data); };
+  liveSpeechStarted = false;
+  liveLastLoudAt = 0;
+  liveCalibSamples = [];
+  liveThreshold = null;
+  liveRecordStartAt = Date.now();
   isListening = true;
-  micBtn.classList.add('listening');
+  const micBtn = document.getElementById('micBtn');
+  if(micBtn) micBtn.classList.add('listening');
+  document.getElementById('chatInput').value = '';
   buddyLastActivity = Date.now();
-
-  speechRecognizer.onresult = (e)=>{
-    let interim = '';
-    for(let i = e.resultIndex; i < e.results.length; i++){
-      const transcript = e.results[i][0].transcript;
-      if(e.results[i].isFinal) liveTranscriptFinal += transcript + ' ';
-      else interim += transcript;
-    }
-    input.value = (liveTranscriptFinal + interim).trim();
-    input.dispatchEvent(new Event('input'));
-    resetLiveSilenceTimer();
-  };
-  speechRecognizer.onerror = (e)=>{
-    if(e.error === 'no-speech') return; // no hay audio todavía, seguimos esperando sin cortar
-    isListening = false;
-    micBtn.classList.remove('listening');
-    if(e.error === 'not-allowed'){
-      liveMode = false;
-      setLiveModeUI(false);
-      alert('Necesitamos permiso de micrófono para la charla en vivo.');
-      return;
-    }
-    if(liveMode && !liveModeSpeaking && !liveTurnInProgress){
-      setTimeout(()=>{ if(liveMode && !liveModeSpeaking && !liveTurnInProgress) startLiveListening(); }, 700);
-    }
-  };
-  speechRecognizer.onend = ()=>{
-    isListening = false;
-    micBtn.classList.remove('listening');
-    // Chrome a veces corta la sesión continua por su cuenta cada tanto: si seguimos en charla en vivo, retomamos
-    if(liveMode && !liveModeSpeaking && !liveTurnInProgress){
-      setTimeout(()=>{ if(liveMode && !liveModeSpeaking && !liveTurnInProgress) startLiveListening(); }, 300);
-    }
-  };
-  speechRecognizer.start();
+  liveRecorder.start();
+  liveVadFrame = requestAnimationFrame(vadLoop);
 }
 
-// Nuestro propio detector de silencio: si pasaron ~1.6s sin resultados nuevos, asumimos que terminó de hablar
-function resetLiveSilenceTimer(){
-  clearTimeout(liveSilenceTimer);
-  liveSilenceTimer = setTimeout(()=>{
-    const text = document.getElementById('chatInput').value.trim();
-    if(liveMode && !liveModeSpeaking && !liveTurnInProgress && text.length > 1){
-      submitLiveTurn();
-    }
-  }, 1600);
+// Escucha el volumen del micrófono para saber cuándo empezaste y cuándo dejaste de hablar (en vez de confiar en el navegador)
+function vadLoop(){
+  if(!isListening || !liveAnalyser) return;
+  const vol = currentVolume();
+  const now = Date.now();
+  const elapsed = now - liveRecordStartAt;
+
+  if(elapsed < LIVE_CALIB_MS){
+    liveCalibSamples.push(vol);
+  } else if(liveThreshold === null){
+    const avgNoise = liveCalibSamples.length ? liveCalibSamples.reduce((a,b)=>a+b,0) / liveCalibSamples.length : 0.01;
+    liveThreshold = Math.max(0.02, avgNoise * 2.5 + 0.012);
+  }
+
+  if(liveThreshold !== null && vol > liveThreshold){
+    liveLastLoudAt = now;
+    if(!liveSpeechStarted) liveSpeechStarted = true;
+  }
+
+  const silenceFor = liveLastLoudAt ? now - liveLastLoudAt : elapsed;
+  if(elapsed > LIVE_MAX_RECORD_MS || (liveSpeechStarted && silenceFor > LIVE_SILENCE_MS)){
+    finishLiveRecording();
+    return;
+  }
+  liveVadFrame = requestAnimationFrame(vadLoop);
 }
 
-function submitLiveTurn(){
-  clearTimeout(liveSilenceTimer);
-  liveTurnInProgress = true;
-  if(speechRecognizer){ try{ speechRecognizer.onend = null; speechRecognizer.stop(); }catch(e){} }
+function finishLiveRecording(){
+  cancelAnimationFrame(liveVadFrame);
   isListening = false;
   const micBtn = document.getElementById('micBtn');
   if(micBtn) micBtn.classList.remove('listening');
-  sendChatMessage();
+  if(!liveRecorder || liveRecorder.state === 'inactive'){
+    if(liveMode && !liveModeSpeaking) setTimeout(()=>{ if(liveMode && !liveModeSpeaking) startLiveListening(); }, 400);
+    return;
+  }
+  liveRecorder.onstop = async ()=>{
+    if(!liveSpeechStarted || liveRecordedChunks.length === 0){
+      // no se detectó habla real (silencio o ruido de fondo nomás): volvemos a escuchar sin mandar nada
+      if(liveMode && !liveModeSpeaking) setTimeout(()=>{ if(liveMode && !liveModeSpeaking) startLiveListening(); }, 300);
+      return;
+    }
+    const blob = new Blob(liveRecordedChunks, { type: liveRecorder.mimeType || 'audio/webm' });
+    liveTurnInProgress = true;
+    await transcribeAndSend(blob);
+  };
+  liveRecorder.stop();
+}
+
+async function transcribeWithGroq(blob){
+  const key = AI_SETTINGS.groq.key;
+  if(!key) throw new Error('Falta tu API key de Groq (Configuración → Groq) para transcribir audio.');
+  const ext = (blob.type||'').includes('ogg') ? 'ogg' : (blob.type||'').includes('mp4') ? 'm4a' : 'webm';
+  const form = new FormData();
+  form.append('file', blob, 'audio.' + ext);
+  form.append('model', 'whisper-large-v3-turbo');
+  form.append('language', 'en');
+  form.append('response_format', 'text');
+  const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${key}` },
+    body: form
+  });
+  if(!res.ok){
+    const errText = await res.text().catch(()=> '');
+    throw new Error(`Groq STT ${res.status}: ${errText.slice(0,140)}`);
+  }
+  return (await res.text()).trim();
+}
+
+async function transcribeAndSend(blob){
+  const input = document.getElementById('chatInput');
+  const originalPlaceholder = input.placeholder;
+  input.placeholder = 'Transcribiendo tu audio…';
+  try{
+    const text = await transcribeWithGroq(blob);
+    input.placeholder = originalPlaceholder;
+    if(text && text.length > 1){
+      input.value = text;
+      input.dispatchEvent(new Event('input'));
+      await sendChatMessage();
+    } else {
+      liveTurnInProgress = false;
+      if(liveMode) setTimeout(()=>{ if(liveMode && !liveModeSpeaking) startLiveListening(); }, 400);
+    }
+  }catch(e){
+    input.placeholder = originalPlaceholder;
+    liveTurnInProgress = false;
+    appendMsg('system', 'No pude transcribir el audio (' + e.message + '). Reintentando…');
+    if(liveMode) setTimeout(()=>{ if(liveMode && !liveModeSpeaking) startLiveListening(); }, 1000);
+  }
+}
+
+function teardownLiveMic(){
+  if(liveVadFrame) cancelAnimationFrame(liveVadFrame);
+  if(liveRecorder && liveRecorder.state !== 'inactive'){
+    try{ liveRecorder.onstop = null; liveRecorder.stop(); }catch(e){}
+  }
+  if(liveMediaStream){
+    liveMediaStream.getTracks().forEach(t => t.stop());
+    liveMediaStream = null;
+  }
+  if(liveAudioContext){
+    try{ liveAudioContext.close(); }catch(e){}
+    liveAudioContext = null;
+  }
+  liveAnalyser = null;
+  liveRecordedChunks = [];
 }
 
 function stopLiveListening(){
-  clearTimeout(liveSilenceTimer);
   liveTurnInProgress = false;
-  if(speechRecognizer){ try{ speechRecognizer.onend = null; speechRecognizer.stop(); }catch(e){} }
-  if(window.speechSynthesis) window.speechSynthesis.cancel();
-  isListening = false;
   liveModeSpeaking = false;
+  isListening = false;
   const micBtn = document.getElementById('micBtn');
   if(micBtn) micBtn.classList.remove('listening');
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  teardownLiveMic();
 }
 
 const liveModeBtnEl = document.getElementById('liveModeBtn');
@@ -1700,7 +1989,14 @@ bubbleEl.addEventListener('mouseleave', ()=>{
 
 const sleep = (ms)=>new Promise(r=>setTimeout(r, ms));
 
-const BUDDY_CORNERS = {
+// Detección simple de dispositivo (touch + pantalla angosta) para adaptar tamaños/márgenes sin depender solo de CSS
+const isMobileDevice = (('ontouchstart' in window) || navigator.maxTouchPoints > 0) && window.innerWidth <= 720;
+
+const BUDDY_CORNERS = isMobileDevice ? {
+  br: {right:'10px',bottom:'10px',left:'auto',top:'auto'},
+  bl: {left:'10px',bottom:'10px',right:'auto',top:'auto'},
+  tr: {right:'10px',top:'90px',bottom:'auto',left:'auto'}
+} : {
   br: {right:'24px',bottom:'24px',left:'auto',top:'auto'},
   bl: {left:'24px',bottom:'24px',right:'auto',top:'auto'},
   tr: {right:'24px',top:'150px',bottom:'auto',left:'auto'}
@@ -1989,8 +2285,8 @@ function userIsActivelyEngaged(){
 
 function cornerTargetPx(key){
   const rect = buddyEl.getBoundingClientRect();
-  const margin = 24;
-  const topOffset = 150;
+  const margin = isMobileDevice ? 10 : 24;
+  const topOffset = isMobileDevice ? Math.min(120, window.innerHeight * 0.18) : 150;
   if(key === 'br') return { x: window.innerWidth - rect.width - margin, y: window.innerHeight - rect.height - margin };
   if(key === 'bl') return { x: margin, y: window.innerHeight - rect.height - margin };
   if(key === 'tr') return { x: window.innerWidth - rect.width - margin, y: topOffset };
