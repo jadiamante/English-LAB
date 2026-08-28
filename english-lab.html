@@ -1328,9 +1328,15 @@ function setLiveStatus(text){
   else { el.style.display = 'none'; el.textContent = ''; }
 }
 
+// Detección de Safari (macOS) e iOS en general — Safari tiene un manejo más frágil de MediaRecorder
+// que Chrome/Firefox, así que acá aplicamos algunos resguardos extra específicamente para él.
+const isIOSDevice = /iP(ad|hone|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isSafariBrowser = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
+const isSafariOrIOS = isIOSDevice || isSafariBrowser;
+
 async function toggleLiveMode(){
   if(!liveModeSupported()){
-    alert('Tu navegador no soporta grabación de audio (probá con Chrome, Edge o Firefox actualizados) — necesaria para la charla en vivo.');
+    alert('Tu navegador no soporta grabación de audio (probá con Chrome, Edge, Firefox o Safari actualizados) — necesaria para la charla en vivo.');
     return;
   }
   if(!AI_SETTINGS.groq.key){
@@ -1356,53 +1362,24 @@ async function toggleLiveMode(){
     alert(micResult.message);
     return;
   }
-  setLiveStatus('Verificando que el audio se capture bien…');
-  const testResult = await selfTestRecorder();
-  btn.disabled = false;
-  if(!testResult.ok){
+  const tracksOk = liveMediaStream.getAudioTracks().some(t => t.readyState === 'live');
+  if(!tracksOk){
+    btn.disabled = false;
     setLiveStatus('');
     teardownLiveMic();
-    alert('El micrófono se detectó, pero no logré grabar audio de prueba (' + testResult.message + '). Probá recargar la página o revisar que ninguna otra app lo esté usando.');
+    alert('El micrófono se detectó pero no está entregando audio. Probá recargar la página o revisar que ninguna otra app lo esté usando.');
     return;
   }
+  // Safari/iOS necesitan un instante extra para que el pipeline de audio se asiente antes de grabar en serio
+  if(isSafariOrIOS){
+    setLiveStatus('Preparando micrófono (Safari)…');
+    await new Promise(r => setTimeout(r, 250));
+  }
+  btn.disabled = false;
   setLiveStatus('');
   liveMode = true;
   setLiveModeUI(true);
   startLiveListening();
-}
-
-// Graba un fragmento muy corto en silencio para confirmar que el MediaRecorder realmente funciona en este navegador,
-// antes de meter al usuario en una charla que podría fallar recién a mitad de camino.
-function selfTestRecorder(){
-  return new Promise((resolve)=>{
-    const mime = pickRecorderMime();
-    let rec;
-    try{
-      rec = mime ? new MediaRecorder(liveMediaStream, { mimeType: mime }) : new MediaRecorder(liveMediaStream);
-    }catch(e){
-      resolve({ ok: false, message: e.message });
-      return;
-    }
-    let gotData = false;
-    const timeout = setTimeout(()=>{
-      if(rec.state !== 'inactive') try{ rec.stop(); }catch(e){}
-    }, 500);
-    rec.ondataavailable = (e)=>{ if(e.data && e.data.size > 0) gotData = true; };
-    rec.onerror = (e)=>{
-      clearTimeout(timeout);
-      resolve({ ok: false, message: (e.error && e.error.message) || 'error de grabación' });
-    };
-    rec.onstop = ()=>{
-      clearTimeout(timeout);
-      resolve(gotData ? { ok: true } : { ok: false, message: 'no se recibieron datos de audio' });
-    };
-    try{
-      rec.start();
-    }catch(e){
-      clearTimeout(timeout);
-      resolve({ ok: false, message: e.message });
-    }
-  });
 }
 
 function micErrorMessage(error){
@@ -1485,6 +1462,15 @@ async function startLiveListening(){
   }
   liveRecordedChunks = [];
   liveRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size > 0) liveRecordedChunks.push(e.data); };
+  liveRecorder.onerror = (e)=>{
+    console.error('MediaRecorder error', e.error || e);
+    isListening = false;
+    const mb = document.getElementById('micBtn');
+    if(mb) mb.classList.remove('listening');
+    if(liveMode && !liveModeSpeaking && !liveTurnInProgress){
+      setTimeout(()=>{ if(liveMode && !liveModeSpeaking && !liveTurnInProgress) startLiveListening(); }, 600);
+    }
+  };
   liveSpeechStarted = false;
   liveLastLoudAt = 0;
   liveCalibSamples = [];
@@ -1495,7 +1481,16 @@ async function startLiveListening(){
   if(micBtn) micBtn.classList.add('listening');
   document.getElementById('chatInput').value = '';
   buddyLastActivity = Date.now();
-  liveRecorder.start();
+  try{
+    liveRecorder.start();
+  }catch(e){
+    isListening = false;
+    if(micBtn) micBtn.classList.remove('listening');
+    liveMode = false;
+    setLiveModeUI(false);
+    alert('No pude iniciar la grabación (' + e.message + '). Probá de nuevo o recargá la página.');
+    return;
+  }
   liveVadFrame = requestAnimationFrame(vadLoop);
 }
 
@@ -2763,7 +2758,51 @@ document.getElementById('buddySnooze').addEventListener('click', (e)=>{
 function buddyPointerPos(e){
   return e.touches ? e.touches[0] : e;
 }
+// ---------- Sacudida física del celular (acelerómetro): misma reacción que agarrar y sacudir con el mouse ----------
+let deviceMotionEnabled = false;
+let motionPermissionRequested = false;
+let motionLastX = null, motionLastY = null, motionLastZ = null;
+let motionLastSampleAt = 0;
+let lastDeviceShakeAt = 0;
+
+function handleDeviceMotion(e){
+  const acc = e.accelerationIncludingGravity || e.acceleration;
+  if(!acc || acc.x === null) return;
+  const now = Date.now();
+  if(motionLastSampleAt && now - motionLastSampleAt < 80) return; // no muestreamos más seguido que eso
+  if(motionLastX !== null){
+    const delta = Math.abs(acc.x - motionLastX) + Math.abs(acc.y - motionLastY) + Math.abs(acc.z - motionLastZ);
+    const SHAKE_THRESHOLD = 26;
+    if(delta > SHAKE_THRESHOLD && now - lastDeviceShakeAt > 3500 && !buddyMuted && !buddyDragging){
+      lastDeviceShakeAt = now;
+      triggerBuddyShake();
+    }
+  }
+  motionLastX = acc.x; motionLastY = acc.y; motionLastZ = acc.z;
+  motionLastSampleAt = now;
+}
+
+// En iOS 13+ hay que pedir permiso explícito al sensor de movimiento, y solo se puede pedir
+// disparado por un gesto real del usuario (por eso lo pedimos apenas te toca el asistente).
+function enableDeviceShakeDetection(){
+  if(deviceMotionEnabled || motionPermissionRequested || !window.DeviceMotionEvent) return;
+  motionPermissionRequested = true;
+  if(typeof DeviceMotionEvent.requestPermission === 'function'){
+    DeviceMotionEvent.requestPermission().then(state=>{
+      if(state === 'granted'){
+        window.addEventListener('devicemotion', handleDeviceMotion);
+        deviceMotionEnabled = true;
+      }
+    }).catch(()=>{});
+  } else {
+    // Android y navegadores que no exigen permiso explícito
+    window.addEventListener('devicemotion', handleDeviceMotion);
+    deviceMotionEnabled = true;
+  }
+}
+
 function startBuddyDrag(e){
+  if(isMobileDevice) enableDeviceShakeDetection();
   buddyDragging = true;
   buddyDragMoved = false;
   buddyShakeSamples = [];
