@@ -381,6 +381,18 @@
     border-style:solid;
     border-color:transparent var(--cream) transparent transparent;
   }
+  .buddy-bubble.arrow-down::after{
+    left:50%; bottom:-8px; transform:translateX(-50%);
+    border-width:8px 8px 0 8px;
+    border-style:solid;
+    border-color:var(--cream) transparent transparent transparent;
+  }
+  .buddy-bubble.arrow-up::after{
+    left:50%; top:-8px; transform:translateX(-50%);
+    border-width:0 8px 8px 8px;
+    border-style:solid;
+    border-color:transparent transparent var(--cream) transparent;
+  }
   .buddy-bubble.show{display:block;animation:popIn .2s ease;}
   @keyframes popIn{from{opacity:0;transform:translateY(6px) scale(.96);}to{opacity:1;transform:translateY(0) scale(1);}}
   .buddy-bubble p{margin:0 0 8px;}
@@ -402,6 +414,14 @@
     cursor:pointer;
   }
   .buddy-bubble button:hover{background:var(--navy-700);}
+  .offline-banner{
+    position:sticky; top:0; z-index:90;
+    background:#3A2A1A; color:var(--gold-300);
+    border-bottom:1px solid rgba(212,169,74,0.35);
+    padding:9px 16px; font-size:13px; text-align:center;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    font-family:'IBM Plex Mono',monospace;
+  }
 
   /* ---- Responsive: tablets y celulares ---- */
   @media (max-width: 720px){
@@ -435,7 +455,7 @@
 
     /* El asistente ocupa menos espacio y se acerca más a los bordes para no tapar contenido */
     .buddy canvas{width:56px;height:56px;}
-    .buddy-bubble{max-width:min(260px, calc(100vw - 32px));}
+    .buddy-bubble{max-width:min(300px, calc(100vw - 24px));}
   }
 
   @media (max-width: 420px){
@@ -455,6 +475,7 @@
 </style>
 </head>
 <body>
+<div id="offlineBanner" class="offline-banner" style="display:none;"></div>
 <div class="wrap">
 
   <header>
@@ -795,6 +816,10 @@ async function callClaude(system, messages, maxTokens=1000, jsonMode=false){
 
   if(provider === 'local'){
     return await callLocalModel(system, messages, maxTokens);
+  }
+
+  if(!navigator.onLine){
+    throw new Error('Sin conexión a internet.');
   }
 
   if(!providerIsConfigured(provider)){
@@ -1988,9 +2013,9 @@ const sleep = (ms)=>new Promise(r=>setTimeout(r, ms));
 const isMobileDevice = (('ontouchstart' in window) || navigator.maxTouchPoints > 0) && window.innerWidth <= 720;
 
 const BUDDY_CORNERS = isMobileDevice ? {
-  br: {right:'10px',bottom:'10px',left:'auto',top:'auto'},
-  bl: {left:'10px',bottom:'10px',right:'auto',top:'auto'},
-  tr: {right:'10px',top:'90px',bottom:'auto',left:'auto'}
+  br: {right:'14px',bottom:'18px',left:'auto',top:'auto'},
+  bl: {left:'14px',bottom:'18px',right:'auto',top:'auto'},
+  tr: {right:'14px',top:'132px',bottom:'auto',left:'auto'}
 } : {
   br: {right:'24px',bottom:'24px',left:'auto',top:'auto'},
   bl: {left:'24px',bottom:'24px',right:'auto',top:'auto'},
@@ -2049,7 +2074,8 @@ const BUDDY_ENCOURAGEMENT = {
   reading: ["¡Correcto! Buena lectura.", "¡Eso es! Entendiste bien el texto.", "¡Muy bien! Seguís sumando.", "¡Perfecto, buena comprensión!", "¡Justo! Leíste con atención.", "¡Ahí está, bien captado!"],
   writing_good: ["¡Excelente texto! Se nota el nivel.", "¡Muy bien logrado! Así se escribe en C1/C2.", "¡Gran trabajo con esta consigna!", "¡Impecable! Fluye como nativo.", "¡Muy prolijo, felicitaciones!", "¡Así se escribe, con estilo!"],
   writing_soft: ["Vas bien encaminado, seguimos puliendo detalles.", "Buen intento — con la corrección de arriba ya mejora bastante.", "Cada texto que escribís suma. ¡Seguí así!", "Vas mejorando, se nota el esfuerzo.", "Buen punto de partida, afinemos algunos detalles."],
-  conversation: ["¡Excelente respuesta, ni un error!", "¡Así se habla! Muy natural.", "¡Buenísimo! Seguí así.", "¡Bien dicho!", "¡Justo así se diría en inglés natural!", "¡Sonó como nativo, eh!", "¡Ahí está, bien fluido!", "¡Perfecto, seguí con esa onda!", "¡Muy natural esa respuesta!", "¡Eso es, con confianza!"]
+  conversation: ["¡Excelente respuesta, ni un error!", "¡Así se habla! Muy natural.", "¡Buenísimo! Seguí así.", "¡Bien dicho!", "¡Justo así se diría en inglés natural!", "¡Sonó como nativo, eh!", "¡Ahí está, bien fluido!", "¡Perfecto, seguí con esa onda!", "¡Muy natural esa respuesta!", "¡Eso es, con confianza!"],
+  online: ["¡Volvió internet! 🎉 Ya podemos seguir de nuevo con todo.", "¡Reconectados! Sigamos donde estábamos.", "¡Ahí está, ya tenemos señal otra vez!", "¡Se restableció la conexión! Volvemos a full potencia."]
 };
 
 // Easter eggs: aparecen bastante menos seguido que los tips normales
@@ -2280,8 +2306,16 @@ function userIsActivelyEngaged(){
 
 function cornerTargetPx(key){
   const rect = buddyEl.getBoundingClientRect();
-  const margin = isMobileDevice ? 10 : 24;
-  const topOffset = isMobileDevice ? Math.min(120, window.innerHeight * 0.18) : 150;
+  const margin = isMobileDevice ? 14 : 24;
+  let topOffset;
+  if(isMobileDevice){
+    // Medimos el header real (crece si aparecen los chips de "áreas a reforzar"), así nunca queda pegado a los tabs
+    const headerEl = document.querySelector('header');
+    const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 100;
+    topOffset = Math.max(90, Math.min(headerBottom + 14, window.innerHeight * 0.35));
+  } else {
+    topOffset = 150;
+  }
   if(key === 'br') return { x: window.innerWidth - rect.width - margin, y: window.innerHeight - rect.height - margin };
   if(key === 'bl') return { x: margin, y: window.innerHeight - rect.height - margin };
   if(key === 'tr') return { x: window.innerWidth - rect.width - margin, y: topOffset };
@@ -2360,6 +2394,17 @@ const BUDDY_WATCHED_INPUTS = ['chatInput', 'writingInput'];
 function pointNearElement(el){
   const rect = el.getBoundingClientRect();
   const bRect = buddyEl.getBoundingClientRect();
+
+  if(isMobileDevice){
+    // En celular el campo de texto suele ocupar casi todo el ancho: mejor ubicarlo arriba o abajo, nunca al costado
+    let y = rect.top - bRect.height - 12;
+    if(y < 8) y = rect.bottom + 12;
+    y = Math.max(8, Math.min(y, window.innerHeight - bRect.height - 8));
+    let x = rect.right - bRect.width - 4;
+    x = Math.max(8, Math.min(x, window.innerWidth - bRect.width - 8));
+    return { x, y };
+  }
+
   let x = rect.right + 16;
   if(x + bRect.width > window.innerWidth - 8) x = rect.left - bRect.width - 16;
   if(x < 8) x = Math.max(8, Math.min(rect.left, window.innerWidth - bRect.width - 8));
@@ -2471,6 +2516,29 @@ function clampBuddyPosition(){
 
 function positionBubbleNearBuddy(){
   const rect = buddyEl.getBoundingClientRect();
+  bubbleEl.classList.remove('arrow-left','arrow-right','arrow-up','arrow-down');
+
+  if(isMobileDevice){
+    // En celular casi no hay lugar a los costados: el globo va arriba o abajo del asistente, usando casi todo el ancho
+    const bw = Math.min(300, window.innerWidth - 24);
+    const bubbleH = 150; // alto aproximado a reservar
+    const gap = 14;
+    const spaceAbove = rect.top;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const side = (spaceAbove >= bubbleH || spaceAbove > spaceBelow) ? 'top' : 'bottom';
+    const top = side === 'top'
+      ? Math.max(8, rect.top - gap - bubbleH)
+      : Math.min(window.innerHeight - bubbleH - 8, rect.bottom + gap);
+    let left = rect.left + rect.width/2 - bw/2;
+    left = Math.max(12, Math.min(left, window.innerWidth - bw - 12));
+    bubbleEl.style.left = left + 'px';
+    bubbleEl.style.top = top + 'px';
+    bubbleEl.style.right = 'auto';
+    bubbleEl.style.bottom = 'auto';
+    bubbleEl.classList.add(side === 'top' ? 'arrow-down' : 'arrow-up');
+    return;
+  }
+
   const bw = 240;
   const gap = 16;
   const spaceLeft = rect.left;
@@ -2483,7 +2551,6 @@ function positionBubbleNearBuddy(){
   bubbleEl.style.top = top + 'px';
   bubbleEl.style.right = 'auto';
   bubbleEl.style.bottom = 'auto';
-  bubbleEl.classList.remove('arrow-left','arrow-right');
   bubbleEl.classList.add(side === 'left' ? 'arrow-right' : 'arrow-left');
 }
 
@@ -2913,6 +2980,58 @@ setInterval(()=>{
 applyBuddyCorner('br');
 drawBuddy('smile', false, false);
 scheduleBlink();
+
+// ---------- Conexión a internet: avisa, usa el modelo local si ya está descargado, y festeja al volver ----------
+let wasOffline = false;
+let providerBeforeOffline = null;
+
+function showOfflineBanner(message){
+  const el = document.getElementById('offlineBanner');
+  if(!el) return;
+  el.textContent = message;
+  el.style.display = 'flex';
+}
+function hideOfflineBanner(){
+  const el = document.getElementById('offlineBanner');
+  if(el) el.style.display = 'none';
+}
+
+function handleOffline(){
+  if(wasOffline) return;
+  wasOffline = true;
+  providerBeforeOffline = AI_PROVIDER;
+  if(AI_PROVIDER !== 'local' && localGenerator){
+    // Ya tenías el modelo local descargado: lo usamos automáticamente mientras no haya internet
+    AI_PROVIDER = 'local';
+    showOfflineBanner('📡 Sin conexión a internet — usando el modelo local (menos preciso) mientras tanto.');
+  } else if(AI_PROVIDER === 'local'){
+    showOfflineBanner('📡 Sin conexión a internet — seguís con el modelo local, sin cambios.');
+  } else {
+    showOfflineBanner('📡 Sin conexión a internet. Por ahora solo podés interactuar con el asistente (moverlo, sacudirlo); los ejercicios y correcciones vuelven apenas se restablezca la conexión.');
+  }
+}
+
+function handleOnline(){
+  if(!wasOffline) return;
+  wasOffline = false;
+  if(providerBeforeOffline){
+    AI_PROVIDER = providerBeforeOffline;
+    providerBeforeOffline = null;
+  }
+  hideOfflineBanner();
+  if(!buddyMuted) buddyCelebrate('online');
+}
+
+window.addEventListener('offline', handleOffline);
+window.addEventListener('online', handleOnline);
+if(!navigator.onLine) handleOffline();
+
+// ---------- Service Worker: cachea la app para que cargue más rápido y funcione offline ----------
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{ /* si no está el archivo, la app sigue funcionando igual */ });
+  });
+}
 
 // ---------- init ----------
 loadApiKey();
