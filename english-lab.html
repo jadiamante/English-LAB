@@ -150,6 +150,11 @@
     border-top:1px solid var(--navy-600);padding-top:16px;margin-top:4px;margin-bottom:16px;
   }
   #qrCanvas{image-rendering:pixelated;border-radius:6px;background:#fff;padding:8px;}
+  #buddyQrCanvas{
+    image-rendering:pixelated;border-radius:6px;background:#fff;padding:6px;
+    display:block;margin:0 auto 8px;max-width:100%;height:auto;
+  }
+  .qr-bubble-msg{display:block;font-size:12px;text-align:center;}
 
   /* ---- Tabs ---- */
   nav.tabs{display:flex;gap:6px;margin-bottom:26px;flex-wrap:wrap;}
@@ -375,25 +380,25 @@
     position:absolute;
   }
   .buddy-bubble.arrow-right::after{
-    top:50%; right:-8px; transform:translateY(-50%);
+    top:var(--arrow-off, 50%); right:-8px; transform:translateY(-50%);
     border-width:8px 0 8px 8px;
     border-style:solid;
     border-color:transparent transparent transparent var(--cream);
   }
   .buddy-bubble.arrow-left::after{
-    top:50%; left:-8px; transform:translateY(-50%);
+    top:var(--arrow-off, 50%); left:-8px; transform:translateY(-50%);
     border-width:8px 8px 8px 0;
     border-style:solid;
     border-color:transparent var(--cream) transparent transparent;
   }
   .buddy-bubble.arrow-down::after{
-    left:50%; bottom:-8px; transform:translateX(-50%);
+    left:var(--arrow-off, 50%); bottom:-8px; transform:translateX(-50%);
     border-width:8px 8px 0 8px;
     border-style:solid;
     border-color:var(--cream) transparent transparent transparent;
   }
   .buddy-bubble.arrow-up::after{
-    left:50%; top:-8px; transform:translateX(-50%);
+    left:var(--arrow-off, 50%); top:-8px; transform:translateX(-50%);
     border-width:0 8px 8px 8px;
     border-style:solid;
     border-color:transparent transparent var(--cream) transparent;
@@ -688,12 +693,8 @@
 
     <div class="qr-section">
       <label class="field-label">COMPARTIR LA APP</label>
-      <p class="hint" style="margin-bottom:10px;">Generá un código QR que abre esta app en otro celular. Se genera acá mismo, en tu navegador — no se manda a ningún servicio externo.</p>
-      <button class="secondary" id="showQrBtn" type="button">📱 Mostrar código QR</button>
-      <div id="qrWrap" style="display:none;margin-top:12px;text-align:center;">
-        <canvas id="qrCanvas"></canvas>
-        <p class="hint" style="margin:8px 0 0;">Escaneala con la cámara de otro celular.</p>
-      </div>
+      <p class="hint" style="margin-bottom:10px;">El asistente te muestra un código QR que abre esta app en otro celular. Se genera en tu navegador — no se manda a ningún servicio externo.</p>
+      <button class="secondary" id="showQrBtn" type="button">📱 Compartir</button>
     </div>
 
     <div class="modal-actions">
@@ -2223,6 +2224,7 @@ function buddyCelebrate(tab, variant){
   buddyActionsDiv.style.display = 'flex';
   buddyBubbleVisible = true;
   buddyLastTipAt = Date.now();
+  requestAnimationFrame(alignBubbleArrow);
 
   const style = Math.random();
   if(style < 0.34){
@@ -2660,6 +2662,25 @@ function positionBubbleNearBuddy(){
   bubbleEl.classList.add(side === 'left' ? 'arrow-right' : 'arrow-left');
 }
 
+// Recalcula dónde tiene que apuntar la flecha del globo, según la posición REAL del asistente
+// (hay que llamarla después de que el globo ya está visible y con su contenido final, para medir bien su tamaño)
+function alignBubbleArrow(){
+  if(bubbleEl.style.display === 'none' || !bubbleEl.classList.contains('show')) return;
+  const bubbleRect = bubbleEl.getBoundingClientRect();
+  const buddyRect = buddyEl.getBoundingClientRect();
+  if(!bubbleRect.width || !bubbleRect.height) return;
+
+  if(bubbleEl.classList.contains('arrow-left') || bubbleEl.classList.contains('arrow-right')){
+    const buddyCenterY = buddyRect.top + buddyRect.height/2;
+    const offset = Math.max(14, Math.min(buddyCenterY - bubbleRect.top, bubbleRect.height - 14));
+    bubbleEl.style.setProperty('--arrow-off', offset + 'px');
+  } else if(bubbleEl.classList.contains('arrow-up') || bubbleEl.classList.contains('arrow-down')){
+    const buddyCenterX = buddyRect.left + buddyRect.width/2;
+    const offset = Math.max(14, Math.min(buddyCenterX - bubbleRect.left, bubbleRect.width - 14));
+    bubbleEl.style.setProperty('--arrow-off', offset + 'px');
+  }
+}
+
 function shuffledPick(pool, n){
   const arr = pool.slice();
   for(let i=arr.length-1;i>0;i--){
@@ -2692,6 +2713,7 @@ function renderBubbleStep(text, tab){
   } else {
     buddyActionBtn.style.display = 'none';
   }
+  requestAnimationFrame(alignBubbleArrow);
 }
 
 // Pide una pista contextual a la IA basada en la conversación real, para mezclar con tips genéricos
@@ -2789,6 +2811,7 @@ async function showBuddyTip(force){
     bubbleTextEl.textContent = line;
     buddyActionBtn.style.display = 'none';
     buddyActionsDiv.style.display = 'flex';
+    requestAnimationFrame(alignBubbleArrow);
     let toggleE = false;
     drawBuddy('talk', false, false, false, false, false, true);
     buddyTalkAnim = setInterval(()=>{
@@ -2890,6 +2913,7 @@ async function playConvSuggestion(){
   }
   clearInterval(talkInterval);
   drawBuddy('smile', false, false);
+  requestAnimationFrame(alignBubbleArrow);
   const input = document.getElementById('chatInput');
   input.value = phrase;
   input.focus();
@@ -2902,6 +2926,7 @@ async function playConvSuggestion(){
 function hideBuddyBubble(){
   bubbleEl.classList.remove('show');
   bubbleTextEl.classList.remove('ok-pop');
+  bubbleEl.style.removeProperty('--arrow-off');
   buddyBubbleVisible = false;
   if(buddyTalkAnim){ clearInterval(buddyTalkAnim); buddyTalkAnim = null; }
   clearInterval(buddyRotateTimer);
@@ -3187,16 +3212,19 @@ function drawQrToCanvas(qr, canvas){
 }
 
 async function showAppQR(){
-  const wrap = document.getElementById('qrWrap');
-  const canvas = document.getElementById('qrCanvas');
-  const btn = document.getElementById('showQrBtn');
-  if(wrap.style.display === 'block'){
-    wrap.style.display = 'none';
-    return;
-  }
-  wrap.style.display = 'block';
-  if(canvas.dataset.rendered === '1') return;
-  btn.disabled = true;
+  closeApiModal();
+
+  // Mostramos el globo del asistente con el QR adentro, en vez de un panel dentro del modal
+  positionBubbleNearBuddy();
+  bubbleEl.classList.add('show');
+  buddyBubbleVisible = true;
+  buddyLastTipAt = Date.now();
+  bubbleTextEl.classList.remove('ok-pop');
+  bubbleTextEl.innerHTML = '<span class="qr-bubble-msg">Generando el código QR…</span>';
+  buddyActionBtn.style.display = 'none';
+  buddyActionsDiv.style.display = 'flex';
+  drawBuddy('talk', false, false);
+
   try{
     const qrcodeLib = await loadQrLib();
     let qr;
@@ -3209,12 +3237,17 @@ async function showAppQR(){
       qr.addData(QR_TARGET_URL);
       qr.make();
     }
-    drawQrToCanvas(qr, canvas);
-    canvas.dataset.rendered = '1';
+    if(!buddyBubbleVisible) return; // el usuario ya cerró el globo mientras cargaba
+    bubbleTextEl.innerHTML = '<canvas id="buddyQrCanvas"></canvas><span class="qr-bubble-msg">Escaneala con la cámara de otro celular 📱</span>';
+    drawQrToCanvas(qr, document.getElementById('buddyQrCanvas'));
+    drawBuddy('smile', false, false);
+    // El QR agranda bastante el globo: recalculamos la flecha con el tamaño ya definitivo
+    requestAnimationFrame(alignBubbleArrow);
   }catch(e){
-    wrap.innerHTML = '<p class="hint">No se pudo generar el código QR. Revisá tu conexión e intentá de nuevo.</p>';
+    if(!buddyBubbleVisible) return;
+    bubbleTextEl.innerHTML = '<span class="qr-bubble-msg">No pude generar el código QR. Revisá tu conexión e intentá de nuevo.</span>';
+    drawBuddy('flat', false, false, false, true);
   }
-  btn.disabled = false;
 }
 
 document.getElementById('showQrBtn').addEventListener('click', showAppQR);
