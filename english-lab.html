@@ -356,8 +356,26 @@
     image-rendering:crisp-edges;
     animation:buddyBob 2.4s ease-in-out infinite;
     filter:drop-shadow(0 6px 10px rgba(0,0,0,0.45));
+    position:relative;
+    z-index:1;
   }
   @keyframes buddyBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+  .buddy-shadow{
+    position:absolute;
+    bottom:2px; left:50%; transform:translateX(-50%);
+    width:46px; height:12px;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 72%);
+    border-radius:50%;
+    pointer-events:none;
+    z-index:0;
+    animation:buddyShadowPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes buddyShadowPulse{
+    0%,100%{transform:translateX(-50%) scale(1); opacity:0.9;}
+    50%{transform:translateX(-50%) scale(0.72); opacity:0.45;}
+  }
+  .buddy.dragging .buddy-shadow, .buddy.walking .buddy-shadow{animation-play-state:paused; opacity:0.55;}
+  .buddy.shaking .buddy-shadow, .buddy.hopping .buddy-shadow, .buddy.spinning .buddy-shadow{animation-play-state:paused; opacity:0.5;}
   .buddy.dragging{cursor:grabbing;}
   .buddy.dragging canvas{animation:none; transform:scale(1.12,0.88) rotate(-4deg);}
   .buddy.shaking canvas{animation:buddyDizzyWobble .13s ease-in-out infinite;}
@@ -376,6 +394,18 @@
     80%{transform:translateY(0) scale(1.1,0.9);}
   }
   .buddy.walking canvas{animation:buddyWalkBob .28s ease-in-out infinite;}
+  .buddy.spinning canvas{animation:buddySpin 1.1s cubic-bezier(.45,0,.2,1) 1;}
+  @keyframes buddySpin{
+    0%{transform:rotate(0deg) scale(1);}
+    45%{transform:rotate(180deg) scale(0.94);}
+    100%{transform:rotate(360deg) scale(1);}
+  }
+  .buddy.listening-pose canvas{animation:buddyListenSway 2.6s ease-in-out infinite;}
+  @keyframes buddyListenSway{
+    0%,100%{transform:rotate(-2deg);}
+    50%{transform:rotate(2deg);}
+  }
+  .buddy.listening-pose .buddy-shadow{animation-play-state:paused; opacity:0.7;}
   @keyframes buddyWalkBob{
     0%,100%{transform:translateY(0) rotate(-3deg);}
     50%{transform:translateY(-5px) rotate(3deg);}
@@ -488,6 +518,7 @@
 
     /* El asistente ocupa menos espacio y se acerca más a los bordes para no tapar contenido */
     .buddy canvas{width:56px;height:56px;}
+    .buddy-shadow{width:36px;height:9px;bottom:0;}
     .buddy-bubble{max-width:min(300px, calc(100vw - 24px));}
   }
 
@@ -648,6 +679,7 @@
 </div>
 
 <div class="buddy" id="buddy" title="Arrastrame para moverme, o hacé click para silenciarme">
+  <div class="buddy-shadow"></div>
   <canvas id="buddyCanvas" width="64" height="64"></canvas>
   <span class="zzz">zzz</span>
 </div>
@@ -1852,6 +1884,7 @@ async function startLiveListening(){
   liveRecorder.onerror = (e)=>{
     console.error('MediaRecorder error', e.error || e);
     isListening = false;
+    stopBuddyListeningFace();
     const mb = document.getElementById('micBtn');
     if(mb) mb.classList.remove('listening');
     if(liveMode && !liveModeSpeaking && !liveTurnInProgress){
@@ -1870,6 +1903,7 @@ async function startLiveListening(){
   buddyLastActivity = Date.now();
   try{
     liveRecorder.start();
+    startBuddyListeningFace();
   }catch(e){
     isListening = false;
     if(micBtn) micBtn.classList.remove('listening');
@@ -1911,6 +1945,7 @@ function vadLoop(){
 function finishLiveRecording(){
   cancelAnimationFrame(liveVadFrame);
   isListening = false;
+  stopBuddyListeningFace();
   const micBtn = document.getElementById('micBtn');
   if(micBtn) micBtn.classList.remove('listening');
   if(!liveRecorder || liveRecorder.state === 'inactive'){
@@ -2054,6 +2089,7 @@ function stopLiveListening(){
   liveTurnInProgress = false;
   liveModeSpeaking = false;
   isListening = false;
+  stopBuddyListeningFace();
   const micBtn = document.getElementById('micBtn');
   if(micBtn) micBtn.classList.remove('listening');
   if(window.speechSynthesis) window.speechSynthesis.cancel();
@@ -2408,6 +2444,22 @@ let buddyBubbleVisible = false;
 let buddyCorner = 'br';
 let buddyTalkAnim = null;
 let buddyReadingMode = false;
+let buddyListeningMode = false;
+
+// Cara de "escuchando atentamente" mientras graba tu voz en la charla en vivo — distinta de la de leer,
+// y se corta sola apenas termina de grabar tu turno, volviendo a las rutinas normales.
+function startBuddyListeningFace(){
+  if(buddyMuted || buddyBubbleVisible) return;
+  buddyListeningMode = true;
+  buddyEl.classList.add('listening-pose');
+  drawBuddy('flat', false, false);
+}
+function stopBuddyListeningFace(){
+  if(!buddyListeningMode) return;
+  buddyListeningMode = false;
+  buddyEl.classList.remove('listening-pose');
+  if(!buddyMuted && !buddyBubbleVisible && !buddyDragging) drawBuddy('smile', false, false);
+}
 let buddyReadingTarget = null;
 let buddyReadingCategory = null;
 let buddyRelocatingToRead = false;
@@ -2695,9 +2747,9 @@ function buddyReactCringe(){
 function scheduleBlink(){
   clearTimeout(buddyBlinkTimer);
   buddyBlinkTimer = setTimeout(()=>{
-    if(!buddyMuted && !buddyBubbleVisible && !buddyDragging && !buddyReadingMode){
+    if(!buddyMuted && !buddyBubbleVisible && !buddyDragging && !buddyReadingMode && !buddyListeningMode){
       drawBuddy('smile', true, false);
-      setTimeout(()=>{ if(!buddyMuted && !buddyBubbleVisible && !buddyDragging && !buddyReadingMode) drawBuddy('smile', false, false); }, 160);
+      setTimeout(()=>{ if(!buddyMuted && !buddyBubbleVisible && !buddyDragging && !buddyReadingMode && !buddyListeningMode) drawBuddy('smile', false, false); }, 160);
     }
     scheduleBlink();
   }, 3000 + Math.random()*3000);
@@ -3410,6 +3462,17 @@ function endBuddyDrag(){
 buddyEl.addEventListener('mousedown', startBuddyDrag);
 buddyEl.addEventListener('touchstart', startBuddyDrag, {passive:false});
 
+// Pequeños gestos sueltos (saltito o giro, sin cambiar de lugar) cuando lleva un rato quieto —
+// además de los tips, los easter eggs y los traslados que ya tenía.
+let buddyLastFidgetAt = 0;
+function playBuddyIdleFidget(){
+  if(buddyReadingMode || buddyDragging || buddyBubbleVisible || buddyMuted) return;
+  buddyLastFidgetAt = Date.now();
+  const kind = Math.random() < 0.5 ? 'hopping' : 'spinning';
+  buddyEl.classList.add(kind);
+  setTimeout(()=> buddyEl.classList.remove(kind), kind === 'hopping' ? 1300 : 1150);
+}
+
 setInterval(()=>{
   if(buddyMuted) return;
   if(Date.now() < buddySnoozeUntil) return;
@@ -3419,6 +3482,10 @@ setInterval(()=>{
   const idle = Date.now() - buddyLastActivity;
   if(idle > 22000 && Date.now() - buddyLastTipAt > 45000){
     showBuddyTip();
+    return;
+  }
+  if(idle > 9000 && Date.now() - buddyLastFidgetAt > 18000 && !userIsActivelyEngaged() && Math.random() < 0.3){
+    playBuddyIdleFidget();
     return;
   }
   if(idle > 15000 && buddyCorner !== 'free' && !userIsActivelyEngaged() && Math.random() < 0.25){
