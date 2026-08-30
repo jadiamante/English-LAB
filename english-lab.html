@@ -260,6 +260,7 @@
   .correction{margin-top:8px;padding-top:8px;border-top:1px dashed var(--navy-600);font-size:12.5px;color:var(--gold-300);line-height:1.5;}
   .correction .better{display:block;margin-top:6px;color:var(--success);font-family:'IBM Plex Mono',monospace;font-size:12px;}
   .coherence-flag{margin-top:8px;padding-top:8px;border-top:1px dashed var(--navy-600);font-size:12.5px;color:#E3A96B;line-height:1.5;}
+  .phonetics-flag{margin-top:8px;padding-top:8px;border-top:1px dashed var(--navy-600);font-size:12.5px;color:var(--violet);line-height:1.5;}
   .chat-input-row{display:flex;gap:10px;}
   .chat-input-row textarea{min-height:52px;}
   .mic-btn{
@@ -282,6 +283,14 @@
     cursor:pointer;user-select:none;
   }
   .voice-toggle input{width:auto;margin:0;}
+  .btn-pair{display:flex;gap:10px;}
+  .btn-pair-live{display:flex;gap:10px;align-items:stretch;}
+  .btn-pair-live #liveModeBtn{flex:1;}
+  .voice-toolbar{
+    display:flex;flex-direction:column;gap:10px;
+    background:var(--navy-800);border:1px solid var(--navy-700);
+    border-radius:10px;padding:12px 14px;margin-bottom:16px;
+  }
   .speak-btn{
     background:none;border:none;color:var(--gold-500);cursor:pointer;
     font-size:13px;padding:2px 4px;margin-top:4px;opacity:.75;
@@ -501,20 +510,35 @@
       margin:0 -12px 20px;padding:0 12px 4px;gap:8px;
       scrollbar-width:thin;
     }
-    .tab-btn{flex:none;font-size:11.5px;padding:10px 12px;white-space:nowrap;}
+    .tab-btn{flex:none;font-size:12.5px;padding:12px 14px;white-space:nowrap;min-height:44px;}
     .card{padding:16px;border-radius:8px;}
     .card h2{font-size:17px;}
-    .row{gap:10px;}
-    .row > div{min-width:100%;}
+
+    /* Filas: apiladas y a todo el ancho, en vez de amontonarse en varias líneas cortas */
+    .row{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-bottom:16px;}
+    .row > div, .row select, .row input[type=text]{width:100%;}
+    .btn-pair, .btn-pair-live{flex-direction:row;gap:8px;}
+    .btn-pair button, .btn-pair-live #liveModeBtn{flex:1;min-width:0;}
+
+    /* Botones: objetivo táctil más grande y cómodo (mínimo recomendado ~44-48px) */
+    button.primary, button.secondary{padding:13px 14px;font-size:13.5px;min-height:46px;}
+    .voice-config-btn{width:46px;height:46px;min-width:46px;}
+    .voice-toolbar{padding:14px;gap:12px;}
+    .voice-toggle{padding:4px 0;min-height:32px;}
     .modal-box{padding:18px;max-width:100%;}
+    .modal-actions button{min-height:46px;}
+
     .chat-input-row{gap:8px;}
-    .chat-input-row textarea{min-height:46px;font-size:16px;}
-    .mic-btn{width:46px;min-width:46px;height:46px;font-size:18px;}
-    button.primary, button.secondary{padding:11px 14px;font-size:13px;}
+    .chat-input-row textarea{min-height:48px;font-size:16px;}
+    .mic-btn{width:48px;min-width:48px;height:48px;font-size:19px;}
+    #sendChat{min-width:74px;}
     .msg{max-width:92%;}
-    .chat-log{max-height:52vh;}
-    .weak-areas{gap:5px;}
-    .weak-chip{font-size:10px;padding:3px 7px;}
+    .chat-log{max-height:48vh;}
+    .weak-areas{gap:6px;margin-top:12px;}
+    .weak-chip{font-size:10.5px;padding:4px 8px;}
+
+    .speak-btn{padding:6px 8px;font-size:12.5px;min-height:32px;}
+    .options .opt-btn{min-height:46px;}
 
     /* El asistente ocupa menos espacio y se acerca más a los bordes para no tapar contenido */
     .buddy canvas{width:56px;height:56px;}
@@ -524,8 +548,10 @@
 
   @media (max-width: 420px){
     h1{font-size:21px;}
-    .tab-btn{font-size:11px;padding:9px 10px;}
-    .options .opt-btn{font-size:13px;padding:10px 12px;}
+    .tab-btn{font-size:11.5px;padding:11px 10px;}
+    .btn-pair, .btn-pair-live{flex-direction:column;}
+    .btn-pair-live #voiceConfigBtn{width:100%;}
+    .options .opt-btn{font-size:13px;padding:11px 12px;}
   }
 
   /* Notch / home-indicator de iPhone */
@@ -597,15 +623,23 @@
             <option value="daily">Vida cotidiana (viajes, compras, charla informal)</option>
           </select>
         </div>
-        <button class="secondary" id="resetConv">Reiniciar conversación</button>
+        <div class="btn-pair">
+          <button class="secondary" id="resetConv">Reiniciar conversación</button>
+        </div>
       </div>
-      <div class="row" style="margin-top:-6px;">
+      <label class="voice-toggle" style="margin-bottom:16px;">
+        <input type="checkbox" id="aiStartsToggle">
+        🗣️ Que la IA arranque la conversación (si no, empezás vos)
+      </label>
+      <div class="voice-toolbar">
+        <div class="btn-pair-live">
+          <button class="secondary" id="liveModeBtn" type="button">🎙️ Charla en vivo</button>
+          <button class="voice-config-btn" id="voiceConfigBtn" type="button" title="Configurar voz (acento, tono, velocidad)">🎛️</button>
+        </div>
         <label class="voice-toggle">
           <input type="checkbox" id="speakToggle">
           🔊 Escuchar las respuestas de la IA
         </label>
-        <button class="secondary" id="liveModeBtn" type="button">🎙️ Charla en vivo</button>
-        <button class="voice-config-btn" id="voiceConfigBtn" type="button" title="Configurar voz (acento, tono, velocidad)">🎛️</button>
         <span id="liveModeStatus" class="status-line" style="display:none;margin:0;"></span>
       </div>
       <span id="voiceProfileTag" class="voice-profile-tag" style="display:none;"></span>
@@ -1078,7 +1112,7 @@ document.getElementById('advancedDetectBtn').addEventListener('click', detectAdv
 
 
 // ---------- Progress storage ----------
-let progress = { grammar:{correct:0,total:0}, writing:{count:0,lastScore:null}, reading:{correct:0,total:0}, conversation:{turns:0,correctionCount:0,incoherentCount:0} };
+let progress = { grammar:{correct:0,total:0}, writing:{count:0,lastScore:null}, reading:{correct:0,total:0}, conversation:{turns:0,correctionCount:0,incoherentCount:0,phoneticsCount:0} };
 
 async function loadProgress(){
   try{
@@ -1086,7 +1120,7 @@ async function loadProgress(){
     if(r && r.value){
       const saved = JSON.parse(r.value);
       progress = Object.assign({}, progress, saved);
-      progress.conversation = Object.assign({ turns:0, correctionCount:0, incoherentCount:0 }, saved.conversation || {});
+      progress.conversation = Object.assign({ turns:0, correctionCount:0, incoherentCount:0, phoneticsCount:0 }, saved.conversation || {});
     }
   }catch(e){ /* no data yet */ }
   updateSeal();
@@ -1191,7 +1225,7 @@ function computeLevelAssessment(){
   const w = progress.writing.lastScore !== null ? progress.writing.lastScore/100 : null;
   const convTurns = progress.conversation.turns || 0;
   const convClean = convTurns >= 3
-    ? Math.max(0, 1 - ((progress.conversation.correctionCount||0) + (progress.conversation.incoherentCount||0)*1.5) / convTurns)
+    ? Math.max(0, 1 - ((progress.conversation.correctionCount||0) + (progress.conversation.incoherentCount||0)*1.5 + (progress.conversation.phoneticsCount||0)*1.1) / convTurns)
     : null; // con menos de 3 turnos no hay suficiente data como para que cuente
 
   const levelMap = { A2:38, B1:52, B2:66, C1:80, C2:93 };
@@ -1202,7 +1236,7 @@ function computeLevelAssessment(){
   if(g !== null) parts.push({ label:'Precisión en gramática', pct: Math.round(g*100), weight: 1 });
   if(r !== null) parts.push({ label:'Comprensión de lectura', pct: Math.round(r*100), weight: 1 });
   if(w !== null) parts.push({ label:'Último puntaje de writing', pct: Math.round(w*100), weight: 1 });
-  if(convClean !== null) parts.push({ label:'Coherencia y corrección en conversación', pct: Math.round(convClean*100), weight: 1.5 });
+  if(convClean !== null) parts.push({ label:'Coherencia, corrección y fonética en conversación', pct: Math.round(convClean*100), weight: 1.5 });
 
   if(!parts.length) return null;
 
@@ -1298,9 +1332,12 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin markdown: {"level_estimate
   convLevelCheckInFlight = false;
 }
 
+let lastTurnWasVoice = false;
+
 function convSystemPrompt(){
   const ctx = contextLabels[document.getElementById('convContext').value];
   const profile = buildProfileSummary();
+  const checkPhonetics = lastTurnWasVoice;
   return `Sos un compañero de práctica de inglés avanzado (nivel C1-C2) para una persona hispanohablante que se prepara para un examen oral avanzado y para usar inglés en su vida profesional y cotidiana, en cualquier rubro o industria (no asumas que trabaja en tecnología salvo que ella lo mencione). Además de conversar, tu rol es CORREGIR de forma directa y pedagógica — como un profesor exigente pero constructivo — porque la persona está acá específicamente para aprender, no solo para charlar.
 Contexto actual de la conversación: ${ctx}.
 ${profile ? `Datos previos de este estudiante (usalos para orientar tus preguntas y detectar mejor sus errores típicos, sin mencionarlos explícitamente): ${profile}\n` : ''}Reglas:
@@ -1314,11 +1351,15 @@ CATEGORY: categoría breve en español del error, ej: "tiempos verbales", "prepo
 - SIEMPRE, en TODAS tus respuestas sin excepción, evaluá además si lo que el usuario acaba de escribir es coherente con el tema que se venía hablando (responde lo que se le preguntó, sigue el hilo del tema, o es un cambio de tema razonable dentro de una charla natural) o si es incoherente, evasivo, no tiene relación con lo que se venía hablando, o cambia de tema de forma abrupta sin sentido. Agregá SIEMPRE una línea nueva, exactamente con este formato, en TODAS las respuestas:
 COHERENCE: SI — si la respuesta del usuario tuvo sentido y siguió el hilo de la conversación.
 COHERENCE: NO — explicación breve EN ESPAÑOL de por qué no fue coherente o de qué tema se desvió, seguida de " — " y una sugerencia concreta EN INGLÉS de qué podría haber dicho en cambio para seguir la conversación con sentido.
-- Esta línea COHERENCE es obligatoria siempre, no la omitas nunca, incluso cuando la respuesta del usuario sí fue coherente (en ese caso poné SI).
+- Esta línea COHERENCE es obligatoria siempre, no la omitas nunca, incluso cuando la respuesta del usuario sí fue coherente (en ese caso poné SI).${checkPhonetics ? `
+- El último mensaje del usuario vino por VOZ (transcripto automáticamente, no tipeado). Fijate si el texto transcripto tiene señales de un problema de pronunciación típico de hispanohablantes (por ejemplo, una palabra transcripta que suena parecida a otra en inglés y probablemente el reconocimiento de voz la confundió por cómo se pronunció — como "tree" en vez de "three", o "ship" en vez de "sheep"). Agregá SIEMPRE una línea con este formato:
+PHONETICS: SI — nombrá la palabra/sonido problemático, explicá brevemente en español cuál es la confusión típica, y indicá cómo se pronuncia bien (podés usar una guía simple tipo "se dice como 'zis' no como 'dis'", no hace falta notación fonética estricta).
+PHONETICS: NO — si no hay ninguna señal de problema de pronunciación en el texto.
+- Esta evaluación es aproximada (se basa en el texto transcripto, no en el audio en sí), así que solo marcá SI cuando la señal sea razonablemente clara, no por cualquier palabra rara.` : ''}
 - No uses markdown ni asteriscos.`;
 }
 
-function appendMsg(role, text, correction, better, incoherent, note){
+function appendMsg(role, text, correction, better, incoherent, note, phoneticsIssue, phoneticsNote){
   const log = document.getElementById('chatLog');
   const div = document.createElement('div');
   div.className = 'msg ' + role;
@@ -1349,12 +1390,18 @@ function appendMsg(role, text, correction, better, incoherent, note){
     n.textContent = '🤔 ' + note;
     div.appendChild(n);
   }
+  if(phoneticsIssue && phoneticsNote){
+    const p = document.createElement('div');
+    p.className = 'phonetics-flag';
+    p.textContent = '🗣️ ' + phoneticsNote;
+    div.appendChild(p);
+  }
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
 }
 
 function parseConvReply(reply){
-  const markers = ['CORRECTION:', 'BETTER:', 'CATEGORY:', 'COHERENCE:'];
+  const markers = ['CORRECTION:', 'BETTER:', 'CATEGORY:', 'COHERENCE:', 'PHONETICS:'];
   let positions = [];
   markers.forEach(m=>{
     const idx = reply.indexOf(m);
@@ -1362,7 +1409,7 @@ function parseConvReply(reply){
   });
   positions.sort((a,b)=>a.idx-b.idx);
   const mainText = positions.length ? reply.slice(0, positions[0].idx).trim() : reply.trim();
-  const result = { mainText, correction:null, better:null, category:null, incoherent:false, note:null };
+  const result = { mainText, correction:null, better:null, category:null, incoherent:false, note:null, phoneticsIssue:false, phoneticsNote:null };
   positions.forEach((p, i)=>{
     const start = p.idx + p.marker.length;
     const end = i+1 < positions.length ? positions[i+1].idx : reply.length;
@@ -1374,6 +1421,11 @@ function parseConvReply(reply){
       const isNo = /^no\b/i.test(text);
       result.incoherent = isNo;
       if(isNo) result.note = text.replace(/^no\s*[—\-:]*\s*/i, '').trim();
+    }
+    if(p.marker === 'PHONETICS:'){
+      const isYes = /^si\b/i.test(text);
+      result.phoneticsIssue = isYes;
+      if(isYes) result.phoneticsNote = text.replace(/^si\s*[—\-:]*\s*/i, '').trim();
     }
   });
   return result;
@@ -1798,7 +1850,12 @@ async function toggleLiveMode(){
   setLiveStatus('');
   liveMode = true;
   setLiveModeUI(true);
-  startLiveListening();
+  if(aiStartsEnabled && convHistory.length === 0){
+    // Todavía no arrancó la charla: que hable la IA primero y recién después empiece a escuchar
+    startConversationWithAI();
+  } else {
+    startLiveListening();
+  }
 }
 
 function micErrorMessage(error){
@@ -2051,6 +2108,7 @@ async function transcribeAndSend(blob){
   input.placeholder = liveUsingLocalSTT ? 'Transcribiendo localmente (puede tardar)…' : 'Transcribiendo tu audio…';
   try{
     const text = await transcribeAudioTurn(blob);
+    lastTurnWasVoice = true;
     input.placeholder = originalPlaceholder;
     if(text && text.length > 1){
       input.value = text;
@@ -2111,7 +2169,7 @@ async function sendChatMessage(){
   try{
     const reply = await callClaude(convSystemPrompt(), convHistory, 1200);
     const parsed = parseConvReply(reply);
-    appendMsg('ai', parsed.mainText, parsed.correction, parsed.better, parsed.incoherent, parsed.note);
+    appendMsg('ai', parsed.mainText, parsed.correction, parsed.better, parsed.incoherent, parsed.note, parsed.phoneticsIssue, parsed.phoneticsNote);
     if(liveMode){
       liveTurnInProgress = false;
       liveModeSpeaking = true;
@@ -2123,16 +2181,20 @@ async function sendChatMessage(){
       speakText(parsed.mainText);
     }
     if(parsed.correction) recordMistakeCategory(parsed.category);
+    if(parsed.phoneticsIssue) recordMistakeCategory('pronunciación');
     if(parsed.incoherent) buddyReactCringe();
     else if(!parsed.correction) buddyCelebrate('conversation');
     convHistory.push({role:"assistant", content:reply});
     progress.conversation.turns++;
     if(parsed.correction) progress.conversation.correctionCount++;
     if(parsed.incoherent) progress.conversation.incoherentCount++;
+    if(parsed.phoneticsIssue) progress.conversation.phoneticsCount++;
+    lastTurnWasVoice = false; // el chequeo de fonética solo aplica al turno que vino por voz
     saveProgress();
     maybeAssessLevelFromConversation(); // en segundo plano, no se espera
   }catch(e){
     appendMsg('system', 'Error al conectar con la IA. Intentá de nuevo.');
+    lastTurnWasVoice = false;
     if(liveMode){
       liveTurnInProgress = false;
       setTimeout(()=>{ if(liveMode && !liveModeSpeaking) startLiveListening(); }, 800);
@@ -2146,16 +2208,64 @@ document.getElementById('sendChat').addEventListener('click', sendChatMessage);
 document.getElementById('chatInput').addEventListener('keydown', (e)=>{
   if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendChatMessage(); }
 });
+let aiStartsEnabled = false;
+async function loadAiStartsPref(){
+  try{
+    const r = await storageGet('ai_starts_conversation', false);
+    aiStartsEnabled = r && r.value === '1';
+  }catch(e){}
+  const toggle = document.getElementById('aiStartsToggle');
+  if(toggle) toggle.checked = aiStartsEnabled;
+}
+document.getElementById('aiStartsToggle').addEventListener('change', async (e)=>{
+  aiStartsEnabled = e.target.checked;
+  try{ await storageSet('ai_starts_conversation', aiStartsEnabled ? '1' : '0', false); }catch(err){}
+});
+
 document.getElementById('resetConv').addEventListener('click', ()=>{
-  convHistory = [];
-  document.getElementById('chatLog').innerHTML = '';
-  appendMsg('system', 'Conversación reiniciada — contexto: ' + document.getElementById('convContext').selectedOptions[0].text);
+  beginConversation();
 });
 document.getElementById('convContext').addEventListener('change', ()=>{
-  document.getElementById('resetConv').click();
+  beginConversation();
 });
-// initial system message
-appendMsg('system', 'Contexto: ' + document.getElementById('convContext').selectedOptions[0].text + ' — escribí algo para empezar.');
+
+// Arranca (o reinicia) la conversación, respetando el checkbox "que arranque la IA" —
+// funciona igual para texto y para charla en vivo, es un único punto de entrada para ambos.
+function beginConversation(){
+  convHistory = [];
+  document.getElementById('chatLog').innerHTML = '';
+  if(aiStartsEnabled){
+    startConversationWithAI();
+  } else {
+    appendMsg('system', 'Contexto: ' + document.getElementById('convContext').selectedOptions[0].text + ' — escribí o hablá para empezar.');
+  }
+}
+
+// Hace que la IA arranque la conversación con un saludo/pregunta natural, en vez de esperar a que el usuario escriba primero.
+// Se usa tanto al reiniciar en modo texto como al entrar a Charla en vivo con el checkbox activado.
+async function startConversationWithAI(){
+  document.getElementById('convLoading').style.display = 'flex';
+  try{
+    const system = convSystemPrompt() + '\n\nEsta vez ARRANCÁ VOS la conversación: escribí un primer mensaje con un saludo natural y una pregunta o comentario de apertura apropiado al contexto elegido, como lo haría un examinador o colega real iniciando la charla. Todavía no hay nada que el estudiante haya dicho, así que no evalúes coherencia ni agregues correcciones en este primer mensaje.';
+    const reply = await callClaude(system, [], 300);
+    const parsed = parseConvReply(reply);
+    appendMsg('ai', parsed.mainText);
+    convHistory.push({role:"assistant", content:reply});
+    if(liveMode){
+      liveModeSpeaking = true;
+      speakText(parsed.mainText, ()=>{ liveModeSpeaking = false; if(liveMode) startLiveListening(); });
+    } else if(speakEnabled){
+      speakText(parsed.mainText);
+    }
+  }catch(e){
+    appendMsg('system', 'Error al conectar con la IA. Intentá de nuevo.');
+    if(liveMode) setTimeout(()=>{ if(liveMode && !liveModeSpeaking) startLiveListening(); }, 800);
+  }
+  document.getElementById('convLoading').style.display = 'none';
+}
+
+// initial system message (al cargar la página, sin auto-hablar todavía: recién arranca con un toque real del usuario)
+appendMsg('system', 'Contexto: ' + document.getElementById('convContext').selectedOptions[0].text + ' — escribí o hablá para empezar, o activá "Que la IA arranque" arriba.');
 
 // =====================================================
 // TAB 2: GRAMMAR
@@ -3560,6 +3670,7 @@ loadApiKey();
 loadProgress();
 loadLearnerProfile();
 loadSpeakPref();
+loadAiStartsPref();
 loadVoiceProfiles();
 
 // ---------- Código QR para compartir la app (se genera acá mismo, nunca se manda a un servicio externo) ----------
