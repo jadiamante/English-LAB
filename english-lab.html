@@ -284,6 +284,7 @@
   }
   .voice-toggle input{width:auto;margin:0;}
   .btn-pair{display:flex;gap:10px;}
+  .btn-pair button.engine-active{background:rgba(155,135,217,0.22);border-color:var(--violet);color:var(--violet);}
   .btn-pair-live{display:flex;gap:10px;align-items:stretch;}
   .btn-pair-live #liveModeBtn{flex:1;}
   .voice-toolbar{
@@ -373,7 +374,7 @@
     position:absolute;
     bottom:2px; left:50%; transform:translateX(-50%);
     width:46px; height:12px;
-    background:radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 72%);
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.18) 55%, rgba(0,0,0,0) 75%);
     border-radius:50%;
     pointer-events:none;
     z-index:0;
@@ -789,6 +790,15 @@
       <button class="secondary" id="showQrBtn" type="button">📱 Compartir</button>
     </div>
 
+    <div class="qr-section">
+      <label class="field-label">SACUDIDA DEL ASISTENTE (CELULAR)</label>
+      <p class="hint" style="margin-bottom:10px;">En algunos Android, ciertas versiones de Firefox reaccionan raro cuando agitás el celular. Si te pasa, apagalo acá.</p>
+      <label class="voice-toggle">
+        <input type="checkbox" id="shakeDetectionToggle">
+        Detectar cuando agito el celular para sacudir al asistente
+      </label>
+    </div>
+
     <div class="modal-actions">
       <button class="primary" id="saveApiKey">Guardar</button>
       <button class="secondary" id="closeApiModal">Cerrar</button>
@@ -801,14 +811,32 @@
     <h3>🎛️ Configurar la voz</h3>
     <p class="hint">Elegí acento y tipo de voz, ajustá tono y velocidad, y guardalo como perfil para usar en la charla en vivo.</p>
 
+    <div id="voiceHelpNotice" class="provider-warning" style="display:none;"></div>
+
     <label class="field-label">PERFIL</label>
     <select id="voiceProfileSelect"></select>
 
-    <label class="field-label">VOZ / ACENTO</label>
-    <select id="voiceSelect"></select>
-    <p class="hint" style="margin-top:-8px;">La lista sale de las voces que ya tiene instaladas tu navegador/dispositivo — varía según Chrome, Safari, Android o iOS.</p>
+    <label class="field-label">MOTOR DE VOZ</label>
+    <div class="btn-pair" style="margin-bottom:14px;">
+      <button class="secondary" id="engineBrowserBtn" type="button">🖥️ Voces del sistema</button>
+      <button class="secondary" id="engineKokoroBtn" type="button">🎙️ Kokoro (local, alta calidad)</button>
+    </div>
 
-    <label class="field-label">TONO (más grave ↔ más agudo): <span id="voicePitchVal">1.0</span></label>
+    <div id="browserVoicePanel">
+      <label class="field-label">VOZ / ACENTO</label>
+      <select id="voiceSelect"></select>
+      <p class="hint" style="margin-top:-8px;">La lista sale de las voces que ya tiene instaladas tu navegador/dispositivo — varía según Chrome, Safari, Android o iOS.</p>
+    </div>
+
+    <div id="kokoroVoicePanel" style="display:none;">
+      <label class="field-label">VOZ KOKORO</label>
+      <select id="kokoroVoiceSelect"></select>
+      <p class="hint" style="margin-top:-8px;margin-bottom:10px;">Voz neuronal que corre 100% en tu navegador — no depende de lo que tenga instalado tu sistema operativo. Se descarga una sola vez (~50-150MB).</p>
+      <div id="kokoroStatus" class="status-line"></div>
+      <button class="secondary" id="kokoroLoadBtn" type="button" style="margin-bottom:14px;">Descargar y cargar voz Kokoro</button>
+    </div>
+
+    <label class="field-label" id="pitchLabel">TONO (más grave ↔ más agudo): <span id="voicePitchVal">1.0</span></label>
     <input type="range" id="voicePitchInput" min="0.5" max="2" step="0.1" value="1" style="width:100%;margin-bottom:16px;">
 
     <label class="field-label">VELOCIDAD (más lento ↔ más rápido): <span id="voiceRateVal">1.0</span></label>
@@ -882,6 +910,49 @@ function providerIsConfigured(p){
 }
 
 // ---------- Modelo local en el navegador (transformers.js), sin key ni servidor ----------
+
+// Cache de la librería + configuración de compatibilidad: GitHub Pages (y la mayoría de los
+// hostings estáticos simples) NO permiten configurar los headers COOP/COEP que hacen falta para
+// que onnxruntime-web use WASM multi-hilo — sin esos headers, el modo por defecto puede colgarse
+// indefinidamente o fallar de forma inconsistente según navegador (mucho más notorio en Firefox).
+// Forzar un solo hilo evita depender de esos headers — un poco más lento, pero confiable en todos
+// los navegadores/hostings, en vez de "a veces sí, a veces no".
+let transformersLibPromise = null;
+function loadTransformersLib(){
+  if(!transformersLibPromise){
+    // Versión FIJADA a propósito (no "latest"): con la URL sin versión, qué build exacta se
+    // resuelve puede variar entre navegadores/momentos, y eso incluye de dónde intenta bajar sus
+    // binarios WASM internos — probablemente la causa de errores tipo "Error in input stream" que
+    // aparecían más seguido en algunos navegadores que en otros. Con una versión fija, siempre se
+    // baja exactamente lo mismo, probado, para todo el mundo.
+    transformersLibPromise = import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1').then(mod=>{
+      try{
+        mod.env.backends.onnx.wasm.numThreads = 1;
+        mod.env.backends.onnx.wasm.proxy = false;
+      }catch(e){ console.warn('No pude ajustar onnxruntime-web a un solo hilo, sigo con lo que venga por defecto', e); }
+      return mod;
+    });
+  }
+  return transformersLibPromise;
+}
+
+// Reintenta unas veces con una pausa creciente — una descarga de ~300-600MB por CDN a veces corta
+// sola por una vez, sin que sea un error real de la app.
+async function withRetries(fn, { attempts = 3, baseDelayMs = 1200, onRetry } = {}){
+  let lastError;
+  for(let i = 0; i < attempts; i++){
+    try{ return await fn(i); }
+    catch(e){
+      lastError = e;
+      if(i < attempts - 1){
+        onRetry?.(i + 1, attempts, e);
+        await new Promise(r => setTimeout(r, baseDelayMs * (i + 1)));
+      }
+    }
+  }
+  throw lastError;
+}
+
 async function loadLocalModel(){
   const statusEl = document.getElementById('localStatus');
   const btn = document.getElementById('localLoadBtn');
@@ -896,19 +967,24 @@ async function loadLocalModel(){
   statusEl.className = 'status-line';
   statusEl.textContent = 'Descargando modelo (puede tardar unos minutos la primera vez)...';
   try{
-    const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
-    localGenerator = await pipeline('text-generation', LOCAL_MODEL_ID, {
-      dtype: 'q4',
-      progress_callback: (p)=>{
-        if(p && p.status === 'progress' && typeof p.progress === 'number'){
-          statusEl.textContent = `Descargando modelo... ${Math.round(p.progress)}%`;
+    localGenerator = await withRetries(async ()=>{
+      const { pipeline } = await loadTransformersLib();
+      return await pipeline('text-generation', LOCAL_MODEL_ID, {
+        dtype: 'q4',
+        progress_callback: (p)=>{
+          if(p && p.status === 'progress' && typeof p.progress === 'number'){
+            statusEl.textContent = `Descargando modelo... ${Math.round(p.progress)}%`;
+          }
         }
-      }
+      });
+    }, {
+      onRetry: (attempt, total)=>{ statusEl.textContent = `Se cortó la descarga, reintentando (${attempt}/${total-1})…`; }
     });
     statusEl.textContent = 'Modelo cargado y listo ✓';
     statusEl.className = 'status-line ok';
   }catch(e){
-    statusEl.textContent = 'No se pudo cargar el modelo local: ' + (e.message || e);
+    console.error('Fallo cargando el modelo local', e);
+    statusEl.textContent = 'No se pudo cargar el modelo local: ' + (e?.message || e) + ' — probá recargar la página e intentar de nuevo.';
     statusEl.className = 'status-line err';
     localGenerator = null;
   }
@@ -1015,6 +1091,26 @@ function parseJsonLoose(text){
   return JSON.parse(cleaned);
 }
 
+// Algunos proveedores (sobre todo con jsonMode menos estricto que Groq) a veces devuelven un campo
+// de texto como un objeto anidado en vez de un string plano — mostrarlo tal cual con textContent/
+// interpolación da "[object Object]". Esta función siempre devuelve algo legible, sea lo que sea
+// que haya mandado la IA.
+function toDisplayText(v){
+  if(v == null) return '';
+  if(typeof v === 'string') return v;
+  if(typeof v === 'number' || typeof v === 'boolean') return String(v);
+  if(Array.isArray(v)) return v.map(toDisplayText).filter(Boolean).join(' — ');
+  if(typeof v === 'object'){
+    for(const key of ['text','point','value','description','content','summary','msg','message']){
+      if(typeof v[key] === 'string') return v[key];
+    }
+    const strVals = Object.values(v).filter(x => typeof x === 'string');
+    if(strVals.length) return strVals.join(' — ');
+    try{ return JSON.stringify(v); }catch(e){ return String(v); }
+  }
+  return String(v);
+}
+
 // ---------- Modal de configuración ----------
 async function loadApiKey(){
   const blob = await storageGet('ai_settings_v2', false);
@@ -1090,6 +1186,7 @@ function openApiModal(){
   const advStatusEl = document.getElementById('advancedStatus');
   advStatusEl.textContent = '';
   advStatusEl.className = 'status-line';
+  document.getElementById('shakeDetectionToggle').checked = (shakeDetectionPref !== false);
   switchProviderPanel(AI_PROVIDER);
   document.getElementById('apiModalOverlay').classList.add('show');
 }
@@ -1491,9 +1588,9 @@ function toggleMic(){
 }
 
 // ---------- Perfiles de voz: acento, tono y velocidad para la charla en vivo ----------
-let voiceProfiles = {}; // { nombre: { voiceURI, pitch, rate } }
+let voiceProfiles = {}; // { nombre: { engine, voiceURI, kokoroVoice, pitch, rate } }
 let activeVoiceProfileName = null;
-let currentVoiceSettings = { voiceURI: null, pitch: 1, rate: 0.98 };
+let currentVoiceSettings = { engine: 'browser', voiceURI: null, kokoroVoice: 'af_bella', pitch: 1, rate: 0.98 };
 
 function findVoiceByURI(uri){
   if(!uri || !window.speechSynthesis) return null;
@@ -1525,8 +1622,139 @@ function unlockAudioOnce(){
 document.addEventListener('touchend', unlockAudioOnce, { once: true, passive: true });
 document.addEventListener('click', unlockAudioOnce, { once: true });
 
+// ---------- Kokoro: voz neuronal local (kokoro-js), para cuando el sistema no tiene voces buenas ----------
+const KOKORO_MODEL_ID = 'onnx-community/Kokoro-82M-ONNX';
+// Lista CONFIRMADA con datos reales (el propio error de la librería la reveló): kokoro-js@1.0.1 +
+// onnx-community/Kokoro-82M-ONNX trae exactamente estas 11 voces, ni una más ni una menos.
+const KOKORO_VOICES = [
+  { id: 'af', label: 'Femenina, EE.UU. — mezcla por defecto' },
+  { id: 'af_bella', label: 'Femenina, EE.UU. — "Bella"' },
+  { id: 'af_nicole', label: 'Femenina, EE.UU. — "Nicole"' },
+  { id: 'af_sarah', label: 'Femenina, EE.UU. — "Sarah"' },
+  { id: 'af_sky', label: 'Femenina, EE.UU. — "Sky"' },
+  { id: 'am_adam', label: 'Masculina, EE.UU. — "Adam"' },
+  { id: 'am_michael', label: 'Masculina, EE.UU. — "Michael"' },
+  { id: 'bf_emma', label: 'Femenina, Reino Unido — "Emma"' },
+  { id: 'bf_isabella', label: 'Femenina, Reino Unido — "Isabella"' },
+  { id: 'bm_george', label: 'Masculina, Reino Unido — "George"' },
+  { id: 'bm_lewis', label: 'Masculina, Reino Unido — "Lewis"' },
+];
+const KOKORO_DEFAULT_VOICE = 'af_bella';
+let kokoroTTS = null;
+let kokoroLoading = false;
+let currentKokoroAudio = null; // <audio> en reproducción, para poder cortarlo si hace falta
+
+async function loadKokoroTTS(){
+  const statusEl = document.getElementById('kokoroStatus');
+  const btn = document.getElementById('kokoroLoadBtn');
+  if(kokoroTTS){
+    if(statusEl){ statusEl.textContent = 'Voz Kokoro ya cargada ✓'; statusEl.className = 'status-line ok'; }
+    return kokoroTTS;
+  }
+  if(kokoroLoading) return null;
+  kokoroLoading = true;
+  if(btn) btn.disabled = true;
+  if(statusEl){ statusEl.className = 'status-line'; statusEl.textContent = 'Descargando voz Kokoro (puede tardar unos minutos la primera vez)...'; }
+  try{
+    kokoroTTS = await withRetries(async ()=>{
+      // Versión fijada a la que está CONFIRMADA como probada junto con este modelo exacto en la
+      // documentación oficial (el anuncio original, el README del modelo y el PR de la librería
+      // usan siempre esta combinación puntual) — mezclar versiones no confirmadas entre sí fue
+      // justamente la causa real de que la voz saliera rota/en otro idioma.
+      const { KokoroTTS } = await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.0.1');
+      return await KokoroTTS.from_pretrained(KOKORO_MODEL_ID, {
+        dtype: 'q8',
+        progress_callback: (p)=>{
+          if(statusEl && p && p.status === 'progress' && typeof p.progress === 'number'){
+            statusEl.textContent = `Descargando voz Kokoro... ${Math.round(p.progress)}%`;
+          }
+        },
+      });
+    }, {
+      onRetry: (attempt, total)=>{ if(statusEl) statusEl.textContent = `Se cortó la descarga, reintentando (${attempt}/${total-1})…`; }
+    });
+    if(statusEl){ statusEl.textContent = 'Voz Kokoro cargada y lista ✓'; statusEl.className = 'status-line ok'; }
+    // DIAGNÓSTICO: mostramos en la consola qué voces trae realmente esta versión del modelo —
+    // así confirmamos si "af_heart" existe de verdad con ese nombre exacto, en vez de asumirlo.
+    try{
+      const voices = typeof kokoroTTS.list_voices === 'function' ? kokoroTTS.list_voices() : (kokoroTTS.voices || null);
+      console.log('[Kokoro] Voces disponibles en este modelo:', voices);
+    }catch(e){ console.warn('[Kokoro] No pude listar las voces disponibles', e); }
+  }catch(e){
+    console.error('No se pudo cargar Kokoro', e);
+    if(statusEl){ statusEl.textContent = 'No se pudo cargar la voz Kokoro: ' + (e?.message || e); statusEl.className = 'status-line err'; }
+    kokoroTTS = null;
+  }
+  kokoroLoading = false;
+  if(btn) btn.disabled = false;
+  return kokoroTTS;
+}
+
+async function speakWithKokoro(text, onEnd){
+  try{
+    const tts = kokoroTTS || await loadKokoroTTS();
+    if(!tts) throw new Error('La voz Kokoro no está cargada.');
+    const voice = currentVoiceSettings.kokoroVoice || KOKORO_DEFAULT_VOICE;
+    let speed = currentVoiceSettings.rate || 1;
+    speed = Math.max(0.5, Math.min(2, speed)); // Kokoro no tolera valores tan extremos como rate del navegador
+    console.log('[Kokoro] Generando con texto:', JSON.stringify(text), '| voz:', voice, '| speed:', speed);
+    let result;
+    try{
+      result = await tts.generate(text, { voice, speed });
+    }catch(e){
+      // "speed" solo está confirmado en el paquete de Python — si esta versión de kokoro-js no lo
+      // acepta y por eso falla, reintentamos sin ese parámetro en vez de dejar la voz muda.
+      console.warn('[Kokoro] generate() con speed falló, reintentando sin ese parámetro', e);
+      result = await tts.generate(text, { voice });
+    }
+    // DIAGNÓSTICO: qué forma tiene realmente lo que devolvió generate() — así vemos si el audio
+    // que se generó corresponde de verdad al texto pedido, o si algo se perdió en el camino.
+    console.log('[Kokoro] Resultado de generate():', result, '| tiene toBlob:', typeof result?.toBlob === 'function',
+      '| duración aprox (muestras/sampling_rate):', result?.audio ? (result.audio.length / (result.sampling_rate||24000)).toFixed(2) + 's' : 'n/d');
+    const blob = typeof result.toBlob === 'function' ? result.toBlob() : wavBlobFromRawAudio(result);
+    if(currentKokoroAudio){ currentKokoroAudio.pause(); currentKokoroAudio.src = ''; }
+    const url = URL.createObjectURL(blob);
+    const audioEl = new Audio(url);
+    currentKokoroAudio = audioEl;
+    audioEl.onended = ()=>{ URL.revokeObjectURL(url); if(onEnd) onEnd(); };
+    audioEl.onerror = ()=>{ URL.revokeObjectURL(url); if(onEnd) onEnd(); };
+    await audioEl.play();
+  }catch(e){
+    console.error('[Kokoro] Error generando voz', e);
+    const statusEl = document.getElementById('kokoroStatus');
+    if(statusEl){ statusEl.textContent = 'Error generando audio con Kokoro: ' + (e?.message || e) + ' (mirá la consola para más detalle)'; statusEl.className = 'status-line err'; }
+    if(onEnd) onEnd();
+  }
+}
+
+// Respaldo por si la versión de kokoro-js no expone toBlob(): arma un WAV válido a mano
+// desde el audio PCM crudo (Float32Array) + su sampling_rate.
+function wavBlobFromRawAudio(raw){
+  const samples = raw.audio;
+  const sampleRate = raw.sampling_rate || 24000;
+  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buffer);
+  const writeStr = (offset, str) => { for(let i=0;i<str.length;i++) view.setUint8(offset+i, str.charCodeAt(i)); };
+  writeStr(0, 'RIFF'); view.setUint32(4, 36 + samples.length*2, true); writeStr(8, 'WAVE');
+  writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate*2, true);
+  view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+  writeStr(36, 'data'); view.setUint32(40, samples.length*2, true);
+  let offset = 44;
+  for(let i=0;i<samples.length;i++, offset+=2){
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s < 0 ? s*0x8000 : s*0x7FFF, true);
+  }
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
 function speakText(text, onEnd){
-  if(!window.speechSynthesis || !text){ if(onEnd) onEnd(); return; }
+  if(!text){ if(onEnd) onEnd(); return; }
+  if(currentVoiceSettings.engine === 'kokoro'){
+    speakWithKokoro(text, onEnd);
+    return;
+  }
+  if(!window.speechSynthesis){ if(onEnd) onEnd(); return; }
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   const chosenVoice = findVoiceByURI(currentVoiceSettings.voiceURI) || pickEnglishVoice();
@@ -1558,7 +1786,10 @@ const speakToggleEl = document.getElementById('speakToggle');
 if(speakToggleEl){
   speakToggleEl.addEventListener('change', async (e)=>{
     speakEnabled = e.target.checked;
-    if(!speakEnabled && window.speechSynthesis) window.speechSynthesis.cancel();
+    if(!speakEnabled){
+      if(window.speechSynthesis) window.speechSynthesis.cancel();
+      if(currentKokoroAudio){ currentKokoroAudio.pause(); currentKokoroAudio.src = ''; currentKokoroAudio = null; }
+    }
     try{ await storageSet('speak_enabled', speakEnabled ? '1' : '0', false); }catch(err){}
   });
 }
@@ -1572,7 +1803,9 @@ async function loadVoiceProfiles(){
       voiceProfiles = parsed.profiles || {};
       activeVoiceProfileName = parsed.active || null;
       if(activeVoiceProfileName && voiceProfiles[activeVoiceProfileName]){
-        currentVoiceSettings = Object.assign({}, voiceProfiles[activeVoiceProfileName]);
+        // Object.assign sobre currentVoiceSettings (que ya trae engine/kokoroVoice por defecto)
+        // así perfiles guardados ANTES de que existiera Kokoro igual quedan con un valor válido.
+        currentVoiceSettings = Object.assign({}, currentVoiceSettings, voiceProfiles[activeVoiceProfileName]);
       }
     }
   }catch(e){ /* sin perfiles guardados aún */ }
@@ -1608,7 +1841,74 @@ function populateVoiceSelect(){
     sel.appendChild(opt);
   });
   if(currentVoiceSettings.voiceURI) sel.value = currentVoiceSettings.voiceURI;
+  updateVoiceHelpNotice(englishFirst.length);
 }
+
+function populateKokoroVoiceSelect(){
+  const sel = document.getElementById('kokoroVoiceSelect');
+  if(!sel) return;
+  sel.innerHTML = '';
+  KOKORO_VOICES.forEach(v=>{
+    const opt = document.createElement('option');
+    opt.value = v.id;
+    opt.textContent = v.label;
+    sel.appendChild(opt);
+  });
+  sel.value = currentVoiceSettings.kokoroVoice || 'af_bella';
+  const statusEl = document.getElementById('kokoroStatus');
+  if(statusEl){
+    statusEl.textContent = kokoroTTS ? 'Voz Kokoro ya cargada ✓' : '';
+    statusEl.className = kokoroTTS ? 'status-line ok' : 'status-line';
+  }
+}
+
+// Detección orientativa del sistema operativo — solo para mostrar la guía correcta, no cambia nada del comportamiento
+function detectOSName(){
+  const ua = navigator.userAgent || '';
+  if(/Android/i.test(ua)) return 'android';
+  if(/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+  if(/Win/i.test(ua)) return 'windows';
+  if(/Mac/i.test(ua) && navigator.maxTouchPoints <= 1) return 'mac';
+  if(/Linux/i.test(ua)) return 'linux';
+  return 'unknown';
+}
+
+const OS_VOICE_HELP = {
+  android: 'Andá a Configuración del sistema → Idiomas y entrada → Conversión de texto a voz → tocá el ⚙️ del motor (suele ser "Voz de Google") → Instalar datos de voz.',
+  ios: 'Andá a Configuración del iPhone/iPad → Accesibilidad → Contenido hablado → Voces → elegí inglés → descargá una voz.',
+  windows: 'Andá a Configuración → Hora e idioma → Voz → "Administrar voces" → Agregar voces.',
+  mac: 'Andá a Preferencias del Sistema → Accesibilidad → Contenido hablado → System Voice → Personalizar, y descargá una voz en inglés.',
+  linux: 'Depende de tu distro/escritorio (instalar espeak-ng, festival o RHVoice por terminal) — como varía mucho, en Linux es más simple usar la voz Kokoro de abajo.',
+  unknown: 'Buscá en la configuración de tu sistema algo como "voces" o "texto a voz" para descargar una voz en inglés.',
+};
+
+function updateVoiceHelpNotice(englishVoiceCount){
+  const notice = document.getElementById('voiceHelpNotice');
+  if(!notice) return;
+  if(englishVoiceCount > 1){
+    notice.style.display = 'none';
+    return;
+  }
+  const os = detectOSName();
+  notice.innerHTML = `⚠️ Tu navegador/sistema no tiene (o casi no tiene) voces en inglés instaladas.<br><br>
+    <strong>Opción rápida:</strong> ${OS_VOICE_HELP[os]}<br><br>
+    <strong>Opción sin salir de la app:</strong> usá "🎙️ Kokoro (local, alta calidad)" más abajo — es una voz que se descarga una sola vez y no depende de lo que tenga tu sistema.`;
+  notice.style.display = 'block';
+}
+
+function setVoiceEngine(engine){
+  currentVoiceSettings.engine = engine;
+  document.getElementById('engineBrowserBtn').classList.toggle('engine-active', engine === 'browser');
+  document.getElementById('engineKokoroBtn').classList.toggle('engine-active', engine === 'kokoro');
+  document.getElementById('browserVoicePanel').style.display = engine === 'browser' ? 'block' : 'none';
+  document.getElementById('kokoroVoicePanel').style.display = engine === 'kokoro' ? 'block' : 'none';
+  document.getElementById('pitchLabel').style.display = engine === 'kokoro' ? 'none' : 'block';
+  document.getElementById('voicePitchInput').style.display = engine === 'kokoro' ? 'none' : 'block';
+}
+document.getElementById('engineBrowserBtn').addEventListener('click', ()=> setVoiceEngine('browser'));
+document.getElementById('engineKokoroBtn').addEventListener('click', ()=> setVoiceEngine('kokoro'));
+document.getElementById('kokoroLoadBtn').addEventListener('click', loadKokoroTTS);
+document.getElementById('kokoroVoiceSelect').addEventListener('change', (e)=>{ currentVoiceSettings.kokoroVoice = e.target.value; });
 
 function populateVoiceProfileSelect(){
   const sel = document.getElementById('voiceProfileSelect');
@@ -1626,7 +1926,9 @@ function populateVoiceProfileSelect(){
 
 function openVoiceModal(){
   populateVoiceSelect();
+  populateKokoroVoiceSelect();
   populateVoiceProfileSelect();
+  setVoiceEngine(currentVoiceSettings.engine || 'browser');
   document.getElementById('voicePitchInput').value = currentVoiceSettings.pitch;
   document.getElementById('voicePitchVal').textContent = currentVoiceSettings.pitch.toFixed(1);
   document.getElementById('voiceRateInput').value = currentVoiceSettings.rate;
@@ -1659,7 +1961,9 @@ document.getElementById('voiceProfileSelect').addEventListener('change', (e)=>{
   }
   const profile = voiceProfiles[name];
   if(!profile) return;
+  setVoiceEngine(profile.engine || 'browser');
   document.getElementById('voiceSelect').value = profile.voiceURI || '';
+  document.getElementById('kokoroVoiceSelect').value = profile.kokoroVoice || 'af_bella';
   document.getElementById('voicePitchInput').value = profile.pitch;
   document.getElementById('voicePitchVal').textContent = profile.pitch.toFixed(1);
   document.getElementById('voiceRateInput').value = profile.rate;
@@ -1668,11 +1972,13 @@ document.getElementById('voiceProfileSelect').addEventListener('change', (e)=>{
 });
 
 document.getElementById('voiceTestBtn').addEventListener('click', ()=>{
+  const engine = currentVoiceSettings.engine;
   const voiceURI = document.getElementById('voiceSelect').value;
+  const kokoroVoice = document.getElementById('kokoroVoiceSelect').value;
   const pitch = parseFloat(document.getElementById('voicePitchInput').value);
   const rate = parseFloat(document.getElementById('voiceRateInput').value);
   const prev = currentVoiceSettings;
-  currentVoiceSettings = { voiceURI, pitch, rate };
+  currentVoiceSettings = { engine, voiceURI, kokoroVoice, pitch, rate };
   speakText("Hi! This is how I'll sound in the live chat.");
   currentVoiceSettings = prev; // la prueba no pisa la configuración activa hasta que toques "Usar esta voz ahora"
 });
@@ -1682,7 +1988,9 @@ document.getElementById('voiceProfileSaveBtn').addEventListener('click', async (
   const name = nameInput.value.trim();
   if(!name){ alert('Ponele un nombre al perfil antes de guardarlo.'); return; }
   voiceProfiles[name] = {
+    engine: currentVoiceSettings.engine,
     voiceURI: document.getElementById('voiceSelect').value,
+    kokoroVoice: document.getElementById('kokoroVoiceSelect').value,
     pitch: parseFloat(document.getElementById('voicePitchInput').value),
     rate: parseFloat(document.getElementById('voiceRateInput').value)
   };
@@ -1710,7 +2018,9 @@ document.getElementById('applyVoiceSettings').addEventListener('click', async ()
   const sel = document.getElementById('voiceProfileSelect');
   activeVoiceProfileName = sel.value || null;
   currentVoiceSettings = {
+    engine: currentVoiceSettings.engine,
     voiceURI: document.getElementById('voiceSelect').value,
+    kokoroVoice: document.getElementById('kokoroVoiceSelect').value,
     pitch: parseFloat(document.getElementById('voicePitchInput').value),
     rate: parseFloat(document.getElementById('voiceRateInput').value)
   };
@@ -2061,15 +2371,19 @@ async function loadLocalASR(){
   const hasWebGPU = !!navigator.gpu;
   setLiveStatus(`Descargando transcriptor local (${hasWebGPU ? 'con GPU' : 'sin GPU, puede ser lento'})… esperá`);
   try{
-    const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
-    localASR = await pipeline('automatic-speech-recognition', LOCAL_ASR_MODEL_ID, {
-      dtype: 'q8',
-      device: hasWebGPU ? 'webgpu' : undefined,
-      progress_callback: (p)=>{
-        if(p && p.status === 'progress' && typeof p.progress === 'number'){
-          setLiveStatus(`Descargando transcriptor local… ${Math.round(p.progress)}%`);
+    localASR = await withRetries(async ()=>{
+      const { pipeline } = await loadTransformersLib();
+      return await pipeline('automatic-speech-recognition', LOCAL_ASR_MODEL_ID, {
+        dtype: 'q8',
+        device: hasWebGPU ? 'webgpu' : undefined,
+        progress_callback: (p)=>{
+          if(p && p.status === 'progress' && typeof p.progress === 'number'){
+            setLiveStatus(`Descargando transcriptor local… ${Math.round(p.progress)}%`);
+          }
         }
-      }
+      });
+    }, {
+      onRetry: (attempt, total)=>{ setLiveStatus(`Se cortó la descarga, reintentando (${attempt}/${total-1})…`); }
     });
   }catch(e){
     console.error('No se pudo cargar el transcriptor local', e);
@@ -2151,6 +2465,7 @@ function stopLiveListening(){
   const micBtn = document.getElementById('micBtn');
   if(micBtn) micBtn.classList.remove('listening');
   if(window.speechSynthesis) window.speechSynthesis.cancel();
+  if(currentKokoroAudio){ currentKokoroAudio.pause(); currentKokoroAudio.src = ''; currentKokoroAudio = null; }
   teardownLiveMic();
 }
 
@@ -2301,7 +2616,7 @@ function renderGrammarQuestion(q){
   area.innerHTML = '';
   const qDiv = document.createElement('div');
   qDiv.className = 'quiz-question';
-  qDiv.textContent = q.question;
+  qDiv.textContent = toDisplayText(q.question);
   area.appendChild(qDiv);
 
   const optsDiv = document.createElement('div');
@@ -2309,13 +2624,13 @@ function renderGrammarQuestion(q){
   q.options.forEach(opt=>{
     const b = document.createElement('button');
     b.className = 'opt-btn';
-    b.textContent = opt;
+    b.textContent = toDisplayText(opt);
     b.addEventListener('click', ()=>{
       document.querySelectorAll('.opt-btn').forEach(o=>o.disabled = true);
-      const correct = opt === q.answer;
+      const correct = toDisplayText(opt) === toDisplayText(q.answer);
       b.classList.add(correct ? 'correct' : 'incorrect');
       if(!correct){
-        document.querySelectorAll('.opt-btn').forEach(o=>{ if(o.textContent === q.answer) o.classList.add('correct'); });
+        document.querySelectorAll('.opt-btn').forEach(o=>{ if(o.textContent === toDisplayText(q.answer)) o.classList.add('correct'); });
       }
       progress.grammar.total++;
       if(correct){ progress.grammar.correct++; buddyCelebrate('grammar'); }
@@ -2324,13 +2639,13 @@ function renderGrammarQuestion(q){
       saveProgress();
       const expl = document.createElement('div');
       expl.className = 'explanation';
-      expl.textContent = q.explanation;
+      expl.textContent = toDisplayText(q.explanation);
       if(q.example){
         const ex = document.createElement('div');
         ex.style.marginTop = '8px';
         ex.style.color = 'var(--gold-300)';
         ex.style.fontStyle = 'italic';
-        ex.textContent = '✎ ' + q.example;
+        ex.textContent = '✎ ' + toDisplayText(q.example);
         expl.appendChild(ex);
       }
       area.appendChild(expl);
@@ -2421,10 +2736,10 @@ function renderWritingFeedback(fb){
   const head = document.createElement('div');
   const levelBadge = document.createElement('span');
   levelBadge.className = 'level-badge';
-  levelBadge.textContent = fb.level_estimate + ' · ' + fb.score_percent + '%';
+  levelBadge.textContent = toDisplayText(fb.level_estimate) + ' · ' + toDisplayText(fb.score_percent) + '%';
   head.appendChild(levelBadge);
   const summary = document.createElement('span');
-  summary.textContent = fb.summary;
+  summary.textContent = toDisplayText(fb.summary);
   summary.style.fontSize = '13.5px';
   summary.style.color = 'var(--muted)';
   head.appendChild(summary);
@@ -2433,7 +2748,7 @@ function renderWritingFeedback(fb){
   if(fb.strengths && fb.strengths.length){
     const h3 = document.createElement('h3'); h3.textContent = 'Puntos fuertes'; block.appendChild(h3);
     const ul = document.createElement('ul');
-    fb.strengths.forEach(s=>{ const li=document.createElement('li'); li.textContent=s; li.style.fontSize='13.5px'; li.style.color='var(--ink)'; ul.appendChild(li); });
+    fb.strengths.forEach(s=>{ const li=document.createElement('li'); li.textContent=toDisplayText(s); li.style.fontSize='13.5px'; li.style.color='var(--ink)'; ul.appendChild(li); });
     block.appendChild(ul);
   }
   if(fb.errors && fb.errors.length){
@@ -2441,7 +2756,13 @@ function renderWritingFeedback(fb){
     fb.errors.forEach(er=>{
       const item = document.createElement('div');
       item.className = 'error-item';
-      item.innerHTML = `<span class="orig">${er.original}</span> → <span class="fix">${er.correction}</span><br>${er.explanation}`;
+      const origSpan = document.createElement('span'); origSpan.className = 'orig'; origSpan.textContent = toDisplayText(er.original);
+      const fixSpan = document.createElement('span'); fixSpan.className = 'fix'; fixSpan.textContent = toDisplayText(er.correction);
+      item.appendChild(origSpan);
+      item.appendChild(document.createTextNode(' → '));
+      item.appendChild(fixSpan);
+      item.appendChild(document.createElement('br'));
+      item.appendChild(document.createTextNode(toDisplayText(er.explanation)));
       block.appendChild(item);
     });
   } else {
@@ -2451,7 +2772,7 @@ function renderWritingFeedback(fb){
     const h3 = document.createElement('h3'); h3.textContent = 'Versión mejorada'; block.appendChild(h3);
     const imp = document.createElement('div');
     imp.className = 'task-box';
-    imp.textContent = fb.improved_version;
+    imp.textContent = toDisplayText(fb.improved_version);
     block.appendChild(imp);
   }
   div.appendChild(block);
@@ -2494,7 +2815,10 @@ function renderReading(data){
   area.innerHTML = '';
   const passageDiv = document.createElement('div');
   passageDiv.className = 'passage';
-  passageDiv.innerHTML = `<h3>${data.title}</h3><p>${data.passage}</p>`;
+  const titleH3 = document.createElement('h3'); titleH3.textContent = toDisplayText(data.title);
+  const passageP = document.createElement('p'); passageP.textContent = toDisplayText(data.passage);
+  passageDiv.appendChild(titleH3);
+  passageDiv.appendChild(passageP);
   area.appendChild(passageDiv);
 
   data.questions.forEach((q, qi)=>{
@@ -2503,27 +2827,27 @@ function renderReading(data){
     const qDiv = document.createElement('div');
     qDiv.className = 'quiz-question';
     qDiv.style.fontSize = '14.5px';
-    qDiv.textContent = (qi+1) + '. ' + q.question;
+    qDiv.textContent = (qi+1) + '. ' + toDisplayText(q.question);
     qWrap.appendChild(qDiv);
     const optsDiv = document.createElement('div');
     optsDiv.className = 'options';
     q.options.forEach(opt=>{
       const b = document.createElement('button');
       b.className = 'opt-btn';
-      b.textContent = opt;
+      b.textContent = toDisplayText(opt);
       b.addEventListener('click', ()=>{
         optsDiv.querySelectorAll('.opt-btn').forEach(o=>o.disabled = true);
-        const correct = opt === q.answer;
+        const correct = toDisplayText(opt) === toDisplayText(q.answer);
         b.classList.add(correct ? 'correct' : 'incorrect');
         if(!correct){
-          optsDiv.querySelectorAll('.opt-btn').forEach(o=>{ if(o.textContent === q.answer) o.classList.add('correct'); });
+          optsDiv.querySelectorAll('.opt-btn').forEach(o=>{ if(o.textContent === toDisplayText(q.answer)) o.classList.add('correct'); });
         }
         progress.reading.total++;
         if(correct){ progress.reading.correct++; buddyCelebrate('reading'); }
         saveProgress();
         const expl = document.createElement('div');
         expl.className = 'explanation';
-        expl.textContent = q.explanation;
+        expl.textContent = toDisplayText(q.explanation);
         qWrap.appendChild(expl);
       });
       optsDiv.appendChild(b);
@@ -2536,7 +2860,7 @@ function renderReading(data){
 document.getElementById('newReading').addEventListener('click', loadReading);
 
 // =====================================================
-// BUDDY: asistente pixel-art
+// BUDDY: asistente pixel-art (Canvas2D + CSS, sin dependencias externas)
 // =====================================================
 const buddyEl = document.getElementById('buddy');
 const buddyCanvas = document.getElementById('buddyCanvas');
@@ -3461,8 +3785,34 @@ function handleDeviceMotion(e){
 
 // En iOS 13+ hay que pedir permiso explícito al sensor de movimiento, y solo se puede pedir
 // disparado por un gesto real del usuario (por eso lo pedimos apenas te toca el asistente).
+// Preferencia de si detectar la sacudida física (acelerómetro). En algunos Android, ciertas
+// versiones de Firefox interpretan la sacudida como un gesto propio del navegador (por ejemplo,
+// para reportar un problema o refrescar) — se lo preguntamos al usuario UNA sola vez, la primera
+// vez que haría falta pedir el sensor, y respetamos lo que haya elegido de ahí en más.
+let shakeDetectionPref = null; // null = todavía no se preguntó
+async function loadShakeDetectionPref(){
+  try{
+    const r = await storageGet('shake_detection_enabled', false);
+    if(r && r.value != null) shakeDetectionPref = r.value === '1';
+  }catch(e){}
+}
+async function saveShakeDetectionPref(enabled){
+  shakeDetectionPref = enabled;
+  try{ await storageSet('shake_detection_enabled', enabled ? '1' : '0', false); }catch(e){}
+}
+
 function enableDeviceShakeDetection(){
   if(deviceMotionEnabled || motionPermissionRequested || !window.DeviceMotionEvent) return;
+  if(shakeDetectionPref === false) return; // el usuario ya dijo que no, no volvemos a preguntar
+  if(shakeDetectionPref === null && isMobileDevice){
+    const wantsIt = confirm(
+      'El asistente puede reaccionar (mareo + tip) si agitás el celular.\n\n' +
+      'En algunos Android, ciertas versiones de Firefox interpretan la sacudida como un gesto propio del navegador y puede hacer cosas raras.\n\n' +
+      '¿Querés activar la detección de sacudida? Podés cambiarlo después en Configuración.'
+    );
+    saveShakeDetectionPref(wantsIt);
+    if(!wantsIt) return;
+  }
   motionPermissionRequested = true;
   if(typeof DeviceMotionEvent.requestPermission === 'function'){
     DeviceMotionEvent.requestPermission().then(state=>{
@@ -3671,6 +4021,7 @@ loadProgress();
 loadLearnerProfile();
 loadSpeakPref();
 loadAiStartsPref();
+loadShakeDetectionPref();
 loadVoiceProfiles();
 
 // ---------- Código QR para compartir la app (se genera acá mismo, nunca se manda a un servicio externo) ----------
@@ -3747,6 +4098,14 @@ async function showAppQR(){
 }
 
 document.getElementById('showQrBtn').addEventListener('click', showAppQR);
+document.getElementById('shakeDetectionToggle').addEventListener('change', (e)=>{
+  const enabled = e.target.checked;
+  saveShakeDetectionPref(enabled);
+  if(enabled && !deviceMotionEnabled){
+    // si lo vuelve a activar después de haberlo apagado, dejamos que el próximo toque reintente el permiso
+    motionPermissionRequested = false;
+  }
+});
 </script>
 </body>
 </html>
