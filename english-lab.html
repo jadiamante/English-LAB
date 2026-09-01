@@ -24,6 +24,7 @@
     --success:#7FB77E;
     --error:#D9776B;
     --violet:#9B87D9;
+    --teal:#4FBDAE;
     --radius:10px;
   }
   *{box-sizing:border-box;}
@@ -112,6 +113,34 @@
     font-size:15px;cursor:pointer;
   }
   .settings-btn:hover{color:var(--gold-500);border-color:var(--gold-500);}
+
+  /* ---------- Tooltips: hover/foco en desktop y teclado; en mobile queda el title nativo como
+     respaldo (aparece con toque largo en algunos navegadores) — NO interceptamos el primer toque
+     en mobile porque eso obligaría a tocar dos veces cada botón para que haga lo que tiene que
+     hacer, rompiendo el uso normal de la app en celular. ---------- */
+  [data-tooltip]{position:relative;}
+  .tooltip-bubble{
+    position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(4px);
+    background:var(--navy-700);color:var(--cream);font-size:11.5px;line-height:1.4;font-weight:400;
+    font-family:'Inter',sans-serif;padding:7px 10px;border-radius:7px;border:1px solid var(--navy-600);
+    white-space:normal;width:max-content;max-width:190px;text-align:center;
+    z-index:200;pointer-events:none;opacity:0;visibility:hidden;
+    transition:opacity .15s ease .3s, transform .15s ease .3s, visibility 0s linear .45s;
+    box-shadow:0 6px 14px rgba(0,0,0,.35);
+  }
+  .tooltip-bubble::after{
+    content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:var(--navy-700);
+  }
+  [data-tooltip]:hover .tooltip-bubble, [data-tooltip]:focus-visible .tooltip-bubble{
+    opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);
+    transition:opacity .15s ease .3s, transform .15s ease .3s, visibility 0s linear 0s;
+  }
+  [data-tooltip].tooltip-align-right .tooltip-bubble{left:auto;right:0;transform:translateY(4px);}
+  [data-tooltip].tooltip-align-right:hover .tooltip-bubble, [data-tooltip].tooltip-align-right:focus-visible .tooltip-bubble{transform:translateY(0);}
+  [data-tooltip].tooltip-align-right .tooltip-bubble::after{left:auto;right:14px;transform:none;}
+  @media (prefers-reduced-motion: reduce){ .tooltip-bubble{transition:none;} }
+  @media (max-width:720px){ .tooltip-bubble{display:none;} } /* en mobile queda solo el title nativo, ver arriba */
 
   .api-banner{
     background:rgba(212,169,74,0.1);
@@ -660,7 +689,7 @@
       <div class="seal-pct" id="sealPct">SIN DATOS</div>
     </div>
     <div id="sealExplain" class="seal-explain" style="display:none;"></div>
-    <button class="settings-btn" id="openApiModal" title="Configurar la IA">⚙</button>
+    <button class="settings-btn tooltip-align-right" id="openApiModal" data-tooltip="Elegir y configurar el proveedor de IA">⚙</button>
   </header>
 
   <div class="api-banner" id="apiBanner" style="display:none;">
@@ -694,7 +723,7 @@
           </select>
         </div>
         <div class="btn-pair">
-          <button class="secondary" id="resetConv">Reiniciar conversación</button>
+          <button class="secondary" id="resetConv" data-tooltip="Borra la charla actual y empieza una nueva">Reiniciar conversación</button>
         </div>
       </div>
       <label class="voice-toggle" style="margin-bottom:16px;">
@@ -703,8 +732,8 @@
       </label>
       <div class="voice-toolbar">
         <div class="btn-pair-live">
-          <button class="secondary" id="liveModeBtn" type="button">🎙️ Charla en vivo</button>
-          <button class="voice-config-btn" id="voiceConfigBtn" type="button" title="Configurar voz (acento, tono, velocidad)">🎛️</button>
+          <button class="secondary" id="liveModeBtn" type="button" data-tooltip="Hablar en inglés por micrófono en vez de escribir">🎙️ Charla en vivo</button>
+          <button class="voice-config-btn" id="voiceConfigBtn" type="button" data-tooltip="Cambiar acento, tono y velocidad de la voz">🎛️</button>
         </div>
         <label class="voice-toggle">
           <input type="checkbox" id="speakToggle">
@@ -716,7 +745,7 @@
       <div class="chat-log" id="chatLog"></div>
       <div id="convLoading" class="loading" style="display:none;"><span class="dot"></span> Escribiendo respuesta…</div>
       <div class="chat-input-row">
-        <button class="mic-btn" id="micBtn" type="button" title="Hablar en inglés">🎤</button>
+        <button class="mic-btn" id="micBtn" type="button" data-tooltip="Dictar tu mensaje por voz, sin activar la charla en vivo">🎤</button>
         <textarea id="chatInput" placeholder="Escribí tu respuesta en inglés…"></textarea>
         <button class="primary" id="sendChat">Enviar</button>
       </div>
@@ -730,7 +759,7 @@
       <p class="hint">Ejercicios estilo C1/C2: opción múltiple, transformación de oraciones y vocabulario en contexto.</p>
       <div class="row">
         <span class="score-pill" id="grammarScore">0 / 0 correctas</span>
-        <button class="primary" id="newGrammarQ" style="margin-left:auto;">Generar ejercicio nuevo</button>
+        <button class="primary" id="newGrammarQ" style="margin-left:auto;" data-tooltip="Pide un ejercicio de opción múltiple nuevo">Generar ejercicio nuevo</button>
       </div>
       <div id="grammarLoading" class="loading" style="display:none;"><span class="dot"></span> Generando ejercicio…</div>
       <div id="grammarQuizArea"></div>
@@ -753,13 +782,13 @@
             <option value="technical-explain">Explicación técnica para alguien no experto</option>
           </select>
         </div>
-        <button class="secondary" id="newWritingTask">Generar consigna</button>
+        <button class="secondary" id="newWritingTask" data-tooltip="Pide un nuevo tema para escribir">Generar consigna</button>
       </div>
       <div id="taskLoading" class="loading" style="display:none;"><span class="dot"></span> Generando consigna…</div>
       <div class="task-box" id="taskBox" style="display:none;"></div>
       <textarea id="writingInput" placeholder="Escribí tu respuesta acá…"></textarea>
       <div style="margin-top:12px;">
-        <button class="primary" id="correctWriting">Corregir</button>
+        <button class="primary" id="correctWriting" data-tooltip="Manda tu texto a la IA para que lo corrija">Corregir</button>
       </div>
       <div id="writingLoading" class="loading" style="display:none;margin-top:10px;"><span class="dot"></span> Corrigiendo texto…</div>
       <div id="writingFeedback"></div>
@@ -771,7 +800,7 @@
     <div class="card">
       <h2>Reading comprehension</h2>
       <p class="hint">Textos breves de nivel avanzado (con temática técnica de vez en cuando) con preguntas de comprensión.</p>
-      <button class="primary" id="newReading">Generar lectura nueva</button>
+      <button class="primary" id="newReading" data-tooltip="Pide un texto nuevo con preguntas de comprensión">Generar lectura nueva</button>
       <div id="readingLoading" class="loading" style="display:none;margin-top:12px;"><span class="dot"></span> Generando texto…</div>
       <div id="readingArea" style="margin-top:16px;"></div>
     </div>
@@ -784,11 +813,11 @@
       <p class="hint">Detecta el idioma solo. El texto/subtítulo se traduce en tu navegador pidiéndole a la IA, y el archivo resultante se arma acá mismo, sin tocar los tiempos si es un subtítulo.</p>
 
       <div class="translation-mode-pair">
-        <button class="engine-card" id="txtModeBtn" type="button">
+        <button class="engine-card" id="txtModeBtn" type="button" data-tooltip="Traducir texto escrito o un archivo .txt">
           <span class="engine-card-icon">📄</span>
           <span class="engine-card-label">Texto / archivo .txt</span>
         </button>
-        <button class="engine-card" id="srtModeBtn" type="button">
+        <button class="engine-card" id="srtModeBtn" type="button" data-tooltip="Traducir un archivo de subtítulos, sin perder los tiempos">
           <span class="engine-card-icon">🎬</span>
           <span class="engine-card-label">Subtítulos (.srt / .vtt)</span>
         </button>
@@ -799,33 +828,33 @@
         <label class="field-label">PEGAR TEXTO (o soltá/elegí un archivo .txt abajo)</label>
         <textarea id="txtTranslateInput" placeholder="Pegá acá el texto en español o en inglés..." style="min-height:110px;"></textarea>
 
-        <div class="dropzone" id="txtDropzone" tabindex="0">
+        <div class="dropzone" id="txtDropzone" tabindex="0" data-tooltip="Arrastrá un .txt o tocá para buscarlo">
           <input type="file" id="txtFileInput" accept=".txt" style="display:none;">
           <span class="dropzone-icon">📄</span>
           <p>Arrastrá un archivo <strong>.txt</strong> acá, o tocá para buscarlo</p>
           <p class="dropzone-filename" id="txtFileName"></p>
         </div>
 
-        <button class="primary" id="translateTxtBtn" type="button" style="width:100%;margin-top:14px;">Traducir</button>
+        <button class="primary" id="translateTxtBtn" type="button" style="width:100%;margin-top:14px;" data-tooltip="Traduce el texto de arriba, detectando el idioma solo">Traducir</button>
       </div>
 
       <!-- Modo subtítulos -->
       <div id="srtTranslateMode" style="display:none;">
-        <div class="dropzone" id="srtDropzone" tabindex="0">
+        <div class="dropzone" id="srtDropzone" tabindex="0" data-tooltip="Arrastrá un .srt o .vtt o tocá para buscarlo">
           <input type="file" id="srtFileInput" accept=".srt,.vtt" style="display:none;">
           <span class="dropzone-icon">🎬</span>
           <p>Arrastrá un subtítulo <strong>.srt</strong> o <strong>.vtt</strong> acá, o tocá para buscarlo</p>
           <p class="dropzone-filename" id="srtFileName"></p>
         </div>
         <p class="hint">Por ahora se soportan .srt y .vtt (los formatos más comunes). Los tiempos originales del archivo nunca se tocan — solo se reemplaza el texto.</p>
-        <button class="primary" id="translateSrtBtn" type="button" style="width:100%;margin-top:6px;" disabled>Traducir subtítulo</button>
+        <button class="primary" id="translateSrtBtn" type="button" style="width:100%;margin-top:6px;" disabled data-tooltip="Traduce el subtítulo sin tocar los tiempos originales">Traducir subtítulo</button>
       </div>
 
       <div id="translationStatus" class="status-line" style="margin-top:14px;"></div>
       <div id="translationProgress" class="loading" style="display:none;margin-top:8px;"><span class="dot"></span> <span id="translationProgressText">Traduciendo…</span></div>
       <div id="translationResultBox" style="display:none;margin-top:14px;">
         <div class="task-box" id="translationPreview" style="max-height:220px;overflow-y:auto;white-space:pre-wrap;"></div>
-        <button class="primary" id="downloadTranslationBtn" type="button" style="width:100%;margin-top:12px;">⬇ Descargar traducido</button>
+        <button class="primary" id="downloadTranslationBtn" type="button" style="width:100%;margin-top:12px;" data-tooltip="Descarga el resultado ya traducido">⬇ Descargar traducido</button>
       </div>
     </div>
   </section>
@@ -845,7 +874,7 @@
   <div class="bubble-actions">
     <button id="buddyAction" style="display:none;"></button>
     <button id="buddyClose">Gracias, seguí</button>
-    <button id="buddySnooze">Esperá un rato 🤫</button>
+    <button id="buddySnooze" data-tooltip="El asistente no te va a interrumpir por un rato">Esperá un rato 🤫</button>
   </div>
 </div>
 
@@ -891,7 +920,7 @@
     <div class="provider-panel" id="panel-local">
       <div class="provider-warning">⚠️ Corre un modelo chico directo en tu navegador (no necesitás key ni internet después de la primera vez). Es mucho menos preciso que Groq/Cerebras/OpenRouter: para gramática, writing y lectura puede cometer errores o no devolver el formato esperado. La primera vez descarga el modelo (~400-600MB) y puede tardar. Funciona mejor en compu que en celular.</div>
       <div id="localStatus" class="status-line"></div>
-      <button class="secondary" id="localLoadBtn" type="button">Descargar y cargar modelo local</button>
+      <button class="secondary" id="localLoadBtn" type="button" data-tooltip="Baja un modelo de IA chico que corre en tu navegador, sin key ni internet después">Descargar y cargar modelo local</button>
     </div>
 
     <div class="provider-panel" id="panel-advanced">
@@ -903,13 +932,13 @@
       <label class="field-label">API KEY (OPCIONAL, MUCHOS SERVIDORES LOCALES NO LA PIDEN)</label>
       <input type="text" id="advancedKeyInput" placeholder="dejalo vacío si no aplica">
       <div id="advancedStatus" class="status-line"></div>
-      <button class="secondary" id="advancedDetectBtn" type="button" style="margin-bottom:14px;">Detectar servidor</button>
+      <button class="secondary" id="advancedDetectBtn" type="button" style="margin-bottom:14px;" data-tooltip="Prueba si tu servidor propio responde en esa dirección">Detectar servidor</button>
     </div>
 
     <div class="qr-section">
       <label class="field-label">COMPARTIR LA APP</label>
       <p class="hint" style="margin-bottom:10px;">El asistente te muestra un código QR que abre esta app en otro celular. Se genera en tu navegador — no se manda a ningún servicio externo.</p>
-      <button class="secondary" id="showQrBtn" type="button">📱 Compartir</button>
+      <button class="secondary" id="showQrBtn" type="button" data-tooltip="Muestra un código QR para abrir la app en otro celular">📱 Compartir</button>
     </div>
 
     <div class="qr-section">
@@ -922,7 +951,7 @@
     </div>
 
     <div class="advanced-section">
-      <button class="advanced-toggle" id="toggleAdvancedSettings" type="button">▸ Avanzadas</button>
+      <button class="advanced-toggle" id="toggleAdvancedSettings" type="button" data-tooltip="Opciones experimentales, como la sección de Traducción">▸ Avanzadas</button>
       <div id="advancedSettingsPanel" style="display:none;margin-top:12px;">
         <label class="field-label">SECCIONES EXPERIMENTALES</label>
         <label class="voice-toggle">
@@ -954,11 +983,11 @@
     <div class="modal-section">
       <label class="field-label">MOTOR DE VOZ</label>
       <div class="engine-pair">
-        <button class="engine-card" id="engineBrowserBtn" type="button">
+        <button class="engine-card" id="engineBrowserBtn" type="button" data-tooltip="Usar las voces que ya tiene instaladas tu dispositivo">
           <span class="engine-card-icon">🖥️</span>
           <span class="engine-card-label">Voces del sistema</span>
         </button>
-        <button class="engine-card" id="engineKokoroBtn" type="button">
+        <button class="engine-card" id="engineKokoroBtn" type="button" data-tooltip="Usar una voz descargable que no depende de tu sistema">
           <span class="engine-card-icon">🎙️</span>
           <span class="engine-card-label">Kokoro (local, alta calidad)</span>
         </button>
@@ -976,7 +1005,7 @@
       <select id="kokoroVoiceSelect"></select>
       <p class="hint">Voz neuronal que corre 100% en tu navegador — no depende de lo que tenga instalado tu sistema operativo. Se descarga una sola vez (~50-150MB).</p>
       <div id="kokoroStatus" class="status-line"></div>
-      <button class="secondary" id="kokoroLoadBtn" type="button">Descargar y cargar voz Kokoro</button>
+      <button class="secondary" id="kokoroLoadBtn" type="button" data-tooltip="Baja una voz de alta calidad que no depende de tu sistema operativo">Descargar y cargar voz Kokoro</button>
     </div>
 
     <div class="modal-section">
@@ -986,7 +1015,7 @@
       <label class="field-label" style="margin-top:14px;">VELOCIDAD (más lento ↔ más rápido): <span id="voiceRateVal">1.0</span></label>
       <input type="range" id="voiceRateInput" min="0.5" max="2" step="0.1" value="1">
 
-      <button class="secondary" id="voiceTestBtn" type="button" style="width:100%;margin-top:6px;">▶ Probar voz</button>
+      <button class="secondary" id="voiceTestBtn" type="button" style="width:100%;margin-top:6px;" data-tooltip="Escuchá cómo suena antes de guardarla">▶ Probar voz</button>
     </div>
 
     <div class="modal-section">
@@ -995,7 +1024,7 @@
         <input type="text" id="voiceProfileNameInput" placeholder="Ej: Profesora británica" style="flex:1;">
         <button class="secondary" id="voiceProfileSaveBtn" type="button">Guardar</button>
       </div>
-      <button class="advanced-toggle" id="voiceProfileDeleteBtn" type="button" style="display:none;">Eliminar el perfil seleccionado</button>
+      <button class="advanced-toggle" id="voiceProfileDeleteBtn" type="button" style="display:none;" data-tooltip="Borra este perfil de voz guardado">Eliminar el perfil seleccionado</button>
     </div>
 
     <div class="modal-actions">
@@ -1053,8 +1082,8 @@ const PROVIDER_ENDPOINTS = {
   cerebras: { url: "https://api.cerebras.ai/v1/chat/completions" },
   openrouter: { url: "https://openrouter.ai/api/v1/chat/completions" },
 };
-// Modelo chico para correr 100% en el navegador con transformers.js (sin key, sin servidor)
-const LOCAL_MODEL_ID = "onnx-community/Qwen2.5-0.5B-Instruct";
+// (el ID del modelo de texto local, "onnx-community/Qwen2.5-0.5B-Instruct", ahora vive dentro de
+// ai-worker.js — es ahí donde se carga y corre de verdad)
 
 let AI_PROVIDER = "groq";
 let AI_SETTINGS = {
@@ -1093,32 +1122,8 @@ function providerIsConfigured(p){
 }
 
 // ---------- Modelo local en el navegador (transformers.js), sin key ni servidor ----------
-
-// Cache de la librería + configuración de compatibilidad: GitHub Pages (y la mayoría de los
-// hostings estáticos simples) NO permiten configurar los headers COOP/COEP que hacen falta para
-// que onnxruntime-web use WASM multi-hilo — sin esos headers, el modo por defecto puede colgarse
-// indefinidamente o fallar de forma inconsistente según navegador (mucho más notorio en Firefox).
-// Forzar un solo hilo evita depender de esos headers — un poco más lento, pero confiable en todos
-// los navegadores/hostings, en vez de "a veces sí, a veces no".
-let transformersLibPromise = null;
-function loadTransformersLib(){
-  if(!transformersLibPromise){
-    // Versión FIJADA a propósito (no "latest"): con la URL sin versión, qué build exacta se
-    // resuelve puede variar entre navegadores/momentos, y eso incluye de dónde intenta bajar sus
-    // binarios WASM internos — probablemente la causa de errores tipo "Error in input stream" que
-    // aparecían más seguido en algunos navegadores que en otros. Con una versión fija, siempre se
-    // baja exactamente lo mismo, probado, para todo el mundo.
-    transformersLibPromise = import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1').then(mod=>{
-      try{
-        mod.env.backends.onnx.wasm.numThreads = 1;
-        mod.env.backends.onnx.wasm.proxy = false;
-      }catch(e){ console.warn('No pude ajustar onnxruntime-web a un solo hilo, sigo con lo que venga por defecto', e); }
-      return mod;
-    });
-  }
-  return transformersLibPromise;
-}
-
+// (la carga de la librería y la config de compatibilidad de un solo hilo ahora viven dentro de
+// ai-worker.js — toda la inferencia corre en ese hilo aparte, ver la explicación ahí)
 // Reintenta unas veces con una pausa creciente — una descarga de ~300-600MB por CDN a veces corta
 // sola por una vez, sin que sea un error real de la app.
 async function withRetries(fn, { attempts = 3, baseDelayMs = 1200, onRetry } = {}){
@@ -1136,6 +1141,77 @@ async function withRetries(fn, { attempts = 3, baseDelayMs = 1200, onRetry } = {
   throw lastError;
 }
 
+// ---------- Worker de IA local: toda la inferencia pesada corre en un hilo aparte (ai-worker.js),
+// para que un cálculo largo nunca congele la pantalla — ver la explicación completa ahí adentro.
+let aiWorker = null;
+let aiWorkerReqId = 0;
+const aiWorkerPending = new Map();
+
+function getAIWorker(){
+  if(!aiWorker){
+    aiWorker = new Worker('ai-worker.js', { type: 'module' });
+    aiWorker.onmessage = (e) => {
+      const { id, type, payload } = e.data;
+      const pending = aiWorkerPending.get(id);
+      if(!pending) return;
+      if(type === 'progress'){ pending.onProgress?.(payload); return; }
+      aiWorkerPending.delete(id);
+      if(type === 'error') pending.reject(new Error(payload.message));
+      else pending.resolve(payload);
+    };
+    aiWorker.onerror = (e) => {
+      console.error('[ai-worker] Error inesperado del worker', e);
+    };
+  }
+  return aiWorker;
+}
+
+function callAIWorker(type, payload, onProgress){
+  return new Promise((resolve, reject) => {
+    const id = aiWorkerReqId++;
+    aiWorkerPending.set(id, { resolve, reject, onProgress });
+    const transferList = (payload && payload.audioBuffer instanceof ArrayBuffer) ? [payload.audioBuffer] : [];
+    getAIWorker().postMessage({ id, type, payload }, transferList);
+  });
+}
+
+// ---------- "Gate" de capacidad del dispositivo, ANTES de intentar cargar un modelo pesado ----------
+// Cargar cientos de MB de modelo y correr inferencia en un celular con poca RAM es lo que más
+// probablemente termina en un cuelgue — mejor avisar ANTES de intentarlo que dejar que se trabe.
+// navigator.deviceMemory es aproximado y solo lo exponen navegadores basados en Chromium (Safari/
+// Firefox no lo dan, quedan como "desconocido" — no se los bloquea, solo no se los puede advertir
+// con este dato puntual).
+function assessDeviceCapability(){
+  const mem = navigator.deviceMemory; // GB aproximados, redondeado a potencia de 2; undefined si el navegador no lo expone
+  const hasWebGPU = !!navigator.gpu;
+  const cores = navigator.hardwareConcurrency || null;
+  const reasons = [];
+  let weak = false;
+  if(typeof mem === 'number' && mem < 4){ weak = true; reasons.push(`poca memoria detectada (~${mem}GB)`); }
+  if(!hasWebGPU){
+    reasons.push('sin aceleración por GPU (WebGPU)');
+    if(typeof mem !== 'number' || mem < 8) weak = true;
+  }
+  if(cores && cores <= 2){ weak = true; reasons.push(`pocos núcleos de CPU (${cores})`); }
+  return { weak, reasons, mem, hasWebGPU, cores };
+}
+
+// Pregunta una sola vez por tipo de modelo (texto local / Kokoro / transcriptor local) si el
+// dispositivo se ve débil — y respeta la respuesta, no vuelve a preguntar en la misma sesión.
+const capabilityAcknowledged = { text: false, asr: false, kokoro: false };
+function confirmProceedOnWeakDevice(kind, label){
+  if(capabilityAcknowledged[kind]) return true;
+  const cap = assessDeviceCapability();
+  if(!cap.weak){ capabilityAcknowledged[kind] = true; return true; }
+  const proceed = confirm(
+    `Este dispositivo puede tener problemas con ${label} — se detectó: ${cap.reasons.join(', ')}.\n\n` +
+    `En equipos así, cargar/usar esto puede sentirse lento o trabarse un rato.\n\n` +
+    `¿Igual querés seguir? (Si no, cancelá y usá un proveedor en la nube — Groq, Cerebras u OpenRouter — desde Configuración.)`
+  );
+  if(proceed) capabilityAcknowledged[kind] = true;
+  return proceed;
+}
+
 async function loadLocalModel(){
   const statusEl = document.getElementById('localStatus');
   const btn = document.getElementById('localLoadBtn');
@@ -1144,23 +1220,19 @@ async function loadLocalModel(){
     return;
   }
   if(localLoading) return;
+  if(!confirmProceedOnWeakDevice('text', 'el modelo de texto local')) return;
   localLoading = true;
   if(btn) btn.disabled = true;
   setStatus(statusEl, 'Descargando modelo (puede tardar unos minutos la primera vez)...');
   try{
-    localGenerator = await withRetries(async ()=>{
-      const { pipeline } = await loadTransformersLib();
-      return await pipeline('text-generation', LOCAL_MODEL_ID, {
-        dtype: 'q4',
-        progress_callback: (p)=>{
-          if(p && p.status === 'progress' && typeof p.progress === 'number'){
-            setStatus(statusEl, `Descargando modelo... ${Math.round(p.progress)}%`);
-          }
-        }
+    await withRetries(async ()=>{
+      return await callAIWorker('load-text-model', {}, (p)=>{
+        setStatus(statusEl, `Descargando modelo... ${Math.round(p.progress)}%`);
       });
     }, {
       onRetry: (attempt, total)=>{ setStatus(statusEl, `Se cortó la descarga, reintentando (${attempt}/${total-1})…`); }
     });
+    localGenerator = true; // ya no guarda el pipeline en sí (eso vive en el worker) — es solo el flag de "listo"
     setStatus(statusEl, 'Modelo cargado y listo ✓', 'ok');
   }catch(e){
     console.error('Fallo cargando el modelo local', e);
@@ -1183,9 +1255,8 @@ async function callLocalModel(system, messages, maxTokens){
     { role: 'system', content: system },
     ...messages.map(m=>({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
   ];
-  const output = await localGenerator(chatMessages, { max_new_tokens: Math.min(maxTokens, 512), do_sample: false });
-  const last = output[0] && output[0].generated_text && output[0].generated_text.at(-1);
-  return (last && last.content) || '';
+  const out = await callAIWorker('generate-text', { chatMessages, maxNewTokens: Math.min(maxTokens, 512) });
+  return out.text || '';
 }
 
 // ---------- Detección de servidor local avanzado (Ollama, LM Studio, etc.) ----------
@@ -1828,7 +1899,7 @@ document.addEventListener('touchend', unlockAudioOnce, { once: true, passive: tr
 document.addEventListener('click', unlockAudioOnce, { once: true });
 
 // ---------- Kokoro: voz neuronal local (kokoro-js), para cuando el sistema no tiene voces buenas ----------
-const KOKORO_MODEL_ID = 'onnx-community/Kokoro-82M-ONNX';
+// (el ID del modelo, "onnx-community/Kokoro-82M-ONNX", ahora vive dentro de ai-worker.js)
 // Lista CONFIRMADA con datos reales (el propio error de la librería la reveló): kokoro-js@1.0.1 +
 // onnx-community/Kokoro-82M-ONNX trae exactamente estas 11 voces, ni una más ni una menos.
 const KOKORO_VOICES = [
@@ -1854,38 +1925,26 @@ async function loadKokoroTTS(){
   const btn = document.getElementById('kokoroLoadBtn');
   if(kokoroTTS){
     setStatus(statusEl, 'Voz Kokoro ya cargada ✓', 'ok');
-    return kokoroTTS;
+    return true;
   }
   if(kokoroLoading) return null;
+  if(!confirmProceedOnWeakDevice('kokoro', 'la voz local Kokoro')) return null;
   kokoroLoading = true;
   if(btn) btn.disabled = true;
   setStatus(statusEl, 'Descargando voz Kokoro (puede tardar unos minutos la primera vez)...');
   try{
-    kokoroTTS = await withRetries(async ()=>{
-      // Versión fijada a la que está CONFIRMADA como probada junto con este modelo exacto en la
-      // documentación oficial (el anuncio original, el README del modelo y el PR de la librería
-      // usan siempre esta combinación puntual) — mezclar versiones no confirmadas entre sí fue
-      // justamente la causa real de que la voz saliera rota/en otro idioma (ver bug #20 en la
-      // documentación del proyecto).
-      const { KokoroTTS } = await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.0.1');
-      return await KokoroTTS.from_pretrained(KOKORO_MODEL_ID, {
-        dtype: 'q8',
-        progress_callback: (p)=>{
-          if(p && p.status === 'progress' && typeof p.progress === 'number'){
-            setStatus(statusEl, `Descargando voz Kokoro... ${Math.round(p.progress)}%`);
-          }
-        },
+    const result = await withRetries(async ()=>{
+      return await callAIWorker('load-kokoro', {}, (p)=>{
+        setStatus(statusEl, `Descargando voz Kokoro... ${Math.round(p.progress)}%`);
       });
     }, {
       onRetry: (attempt, total)=>{ setStatus(statusEl, `Se cortó la descarga, reintentando (${attempt}/${total-1})…`); }
     });
+    kokoroTTS = true; // el modelo en sí vive en el worker — esto es solo el flag de "listo"
     setStatus(statusEl, 'Voz Kokoro cargada y lista ✓', 'ok');
     // Diagnóstico: deja registrada en consola la lista real de voces de este modelo, útil si
     // algún día la librería cambia de versión y algún voice ID deja de existir (ver bug #20).
-    try{
-      const voices = typeof kokoroTTS.list_voices === 'function' ? kokoroTTS.list_voices() : (kokoroTTS.voices || null);
-      console.log('[Kokoro] Voces disponibles en este modelo:', voices);
-    }catch(e){ console.warn('[Kokoro] No pude listar las voces disponibles', e); }
+    console.log('[Kokoro] Voces disponibles en este modelo:', result.voices);
   }catch(e){
     console.error('No se pudo cargar Kokoro', e);
     setStatus(statusEl, 'No se pudo cargar la voz Kokoro: ' + (e?.message || e), 'err');
@@ -1898,26 +1957,13 @@ async function loadKokoroTTS(){
 
 async function speakWithKokoro(text, onEnd){
   try{
-    const tts = kokoroTTS || await loadKokoroTTS();
-    if(!tts) throw new Error('La voz Kokoro no está cargada.');
+    if(!kokoroTTS) await loadKokoroTTS();
+    if(!kokoroTTS) throw new Error('La voz Kokoro no está cargada.');
     const voice = currentVoiceSettings.kokoroVoice || KOKORO_DEFAULT_VOICE;
     let speed = currentVoiceSettings.rate || 1;
     speed = Math.max(0.5, Math.min(2, speed)); // Kokoro no tolera valores tan extremos como rate del navegador
-    console.log('[Kokoro] Generando con texto:', JSON.stringify(text), '| voz:', voice, '| speed:', speed);
-    let result;
-    try{
-      result = await tts.generate(text, { voice, speed });
-    }catch(e){
-      // "speed" solo está confirmado en el paquete de Python — si esta versión de kokoro-js no lo
-      // acepta y por eso falla, reintentamos sin ese parámetro en vez de dejar la voz muda.
-      console.warn('[Kokoro] generate() con speed falló, reintentando sin ese parámetro', e);
-      result = await tts.generate(text, { voice });
-    }
-    // DIAGNÓSTICO: qué forma tiene realmente lo que devolvió generate() — así vemos si el audio
-    // que se generó corresponde de verdad al texto pedido, o si algo se perdió en el camino.
-    console.log('[Kokoro] Resultado de generate():', result, '| tiene toBlob:', typeof result?.toBlob === 'function',
-      '| duración aprox (muestras/sampling_rate):', result?.audio ? (result.audio.length / (result.sampling_rate||24000)).toFixed(2) + 's' : 'n/d');
-    const blob = typeof result.toBlob === 'function' ? result.toBlob() : wavBlobFromRawAudio(result);
+    const result = await callAIWorker('speak-kokoro', { text, voice, speed });
+    const blob = wavBlobFromRawAudio({ audio: new Float32Array(result.audioBuffer), sampling_rate: result.samplingRate });
     if(currentKokoroAudio){ currentKokoroAudio.pause(); currentKokoroAudio.src = ''; }
     const url = URL.createObjectURL(blob);
     const audioEl = new Audio(url);
@@ -1932,8 +1978,8 @@ async function speakWithKokoro(text, onEnd){
   }
 }
 
-// Respaldo por si la versión de kokoro-js no expone toBlob(): arma un WAV válido a mano
-// desde el audio PCM crudo (Float32Array) + su sampling_rate.
+// Arma un WAV válido a mano desde el audio PCM crudo (Float32Array) + su sampling_rate — el
+// worker manda el audio crudo (más liviano de transferir que un Blob ya armado).
 function wavBlobFromRawAudio(raw){
   const samples = raw.audio;
   const sampleRate = raw.sampling_rate || 24000;
@@ -2573,35 +2619,30 @@ async function transcribeWithGroq(blob){
 // ---------- Transcripción local (sin internet): Whisper chico corriendo en el navegador ----------
 // Se usa como respaldo cuando no hay conexión — usa la GPU del dispositivo si está disponible (WebGPU),
 // y si no, cae automáticamente a CPU (WASM), que es bastante más lento pero funciona igual.
-const LOCAL_ASR_MODEL_ID = 'onnx-community/whisper-tiny.en';
+// (el ID del modelo, "onnx-community/whisper-tiny.en", ahora vive dentro de ai-worker.js)
 let localASR = null;
 let localASRLoading = false;
 let liveUsingLocalSTT = false;
 
 async function loadLocalASR(){
-  if(localASR) return localASR;
+  if(localASR) return true;
   if(localASRLoading){
     while(localASRLoading) await new Promise(r => setTimeout(r, 200));
     return localASR;
   }
+  if(!confirmProceedOnWeakDevice('asr', 'el transcriptor de voz local')) return null;
   localASRLoading = true;
   const hasWebGPU = !!navigator.gpu;
   setLiveStatus(`Descargando transcriptor local (${hasWebGPU ? 'con GPU' : 'sin GPU, puede ser lento'})… esperá`);
   try{
-    localASR = await withRetries(async ()=>{
-      const { pipeline } = await loadTransformersLib();
-      return await pipeline('automatic-speech-recognition', LOCAL_ASR_MODEL_ID, {
-        dtype: 'q8',
-        device: hasWebGPU ? 'webgpu' : undefined,
-        progress_callback: (p)=>{
-          if(p && p.status === 'progress' && typeof p.progress === 'number'){
-            setLiveStatus(`Descargando transcriptor local… ${Math.round(p.progress)}%`);
-          }
-        }
+    await withRetries(async ()=>{
+      return await callAIWorker('load-asr', { hasWebGPU }, (p)=>{
+        setLiveStatus(`Descargando transcriptor local… ${Math.round(p.progress)}%`);
       });
     }, {
       onRetry: (attempt, total)=>{ setLiveStatus(`Se cortó la descarga, reintentando (${attempt}/${total-1})…`); }
     });
+    localASR = true; // el modelo en sí vive en el worker — esto es solo el flag de "listo"
   }catch(e){
     console.error('No se pudo cargar el transcriptor local', e);
     localASR = null;
@@ -2620,11 +2661,13 @@ async function blobToFloat32Audio(blob){
 }
 
 async function transcribeLocally(blob){
-  const asr = await loadLocalASR();
-  if(!asr) throw new Error('No se pudo cargar el transcriptor local en este navegador.');
+  const ready = await loadLocalASR();
+  if(!ready) throw new Error('No se pudo cargar el transcriptor local en este navegador.');
+  // La decodificación de audio (liviana, rápida) se hace acá con la Web Audio API — lo pesado
+  // (la transcripción en sí) es lo único que se manda al worker.
   const audioData = await blobToFloat32Audio(blob);
-  const result = await asr(audioData, { language: 'english', task: 'transcribe' });
-  return ((result && result.text) || '').trim();
+  const result = await callAIWorker('transcribe', { audioBuffer: audioData.buffer });
+  return result.text || '';
 }
 
 // Elige Groq (rápido, necesita internet) o el transcriptor local (más lento, sin internet), según corresponda
@@ -4633,7 +4676,34 @@ document.getElementById('toggleAdvancedSettings').addEventListener('click', () =
   btn.textContent = isOpen ? '▸ Avanzadas' : '▾ Avanzadas';
 });
 
+// =====================================================
+// TOOLTIPS: arma el globito flotante para todo elemento con data-tooltip="..."
+// =====================================================
+// Un solo lugar que arma la burbuja visual Y la conexión de accesibilidad (aria-describedby) para
+// TODOS los botones de golpe, en vez de tener que repetir el mismo HTML/JS en cada uno. Se corre
+// una sola vez al cargar la página; si algún botón se agrega dinámicamente después con
+// data-tooltip, hay que llamar a setupTooltips() de nuevo sobre ese elemento puntual (no hace
+// falta en esta app porque todos los botones con tooltip ya están en el HTML desde el arranque).
+function setupTooltips(){
+  let tid = 0;
+  document.querySelectorAll('[data-tooltip]').forEach(el => {
+    if(el.querySelector(':scope > .tooltip-bubble')) return; // ya tiene, no duplicar
+    const text = el.getAttribute('data-tooltip');
+    if(!text) return;
+    if(!el.title) el.title = text; // respaldo nativo para mobile (toque largo en algunos navegadores)
+    const id = 'tooltip-' + (tid++);
+    const bubble = document.createElement('span');
+    bubble.className = 'tooltip-bubble';
+    bubble.id = id;
+    bubble.setAttribute('role', 'tooltip');
+    bubble.textContent = text;
+    el.appendChild(bubble);
+    el.setAttribute('aria-describedby', id);
+  });
+}
+
 // ---------- init ----------
+setupTooltips();
 loadApiKey();
 loadProgress();
 loadLearnerProfile();
