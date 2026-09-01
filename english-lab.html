@@ -86,8 +86,8 @@
     cursor:pointer;
   }
   .seal-explain{
-    position:absolute;top:110%;right:0;z-index:70;
-    width:260px;background:var(--navy-800);border:1px solid var(--navy-600);
+    position:fixed;z-index:70;
+    background:var(--navy-800);border:1px solid var(--navy-600);
     border-radius:10px;padding:14px 16px;box-shadow:0 10px 24px rgba(0,0,0,0.4);
     filter:none;
   }
@@ -658,8 +658,8 @@
       </svg>
       <div class="seal-level" id="sealLevel">&ndash;</div>
       <div class="seal-pct" id="sealPct">SIN DATOS</div>
-      <div id="sealExplain" class="seal-explain" style="display:none;"></div>
     </div>
+    <div id="sealExplain" class="seal-explain" style="display:none;"></div>
     <button class="settings-btn" id="openApiModal" title="Configurar la IA">⚙</button>
   </header>
 
@@ -1544,6 +1544,21 @@ function updateSeal(){
   pctEl.textContent = assessment.pct + "%";
 }
 
+// Calcula dónde va el panel de explicación del sello, SIEMPRE dentro de los límites reales de la
+// pantalla — antes usaba position:absolute + right:0 fijo, que en celulares angostos lo empujaba
+// fuera del viewport por los costados (se veía cortado a la mitad). Mismo criterio de "clamping"
+// que ya usa positionBubbleNearBuddy() para el globo del asistente.
+function positionSealExplain(){
+  const box = document.getElementById('sealExplain');
+  const sealRect = document.getElementById('seal').getBoundingClientRect();
+  const bw = Math.min(280, window.innerWidth - 24); // nunca más ancho que la pantalla, con margen
+  box.style.width = bw + 'px';
+  let left = sealRect.right - bw; // por defecto, alineado al borde derecho del sello, como antes
+  left = Math.max(12, Math.min(left, window.innerWidth - bw - 12)); // pero nunca se sale de la pantalla
+  box.style.left = left + 'px';
+  box.style.top = (sealRect.bottom + 10) + 'px';
+}
+
 function toggleSealExplanation(){
   const box = document.getElementById('sealExplain');
   if(!box) return;
@@ -1560,8 +1575,13 @@ function toggleSealExplanation(){
     `;
   }
   box.style.display = 'block';
+  positionSealExplain();
 }
 document.getElementById('seal').addEventListener('click', toggleSealExplanation);
+window.addEventListener('resize', () => {
+  const box = document.getElementById('sealExplain');
+  if(box && box.style.display === 'block') positionSealExplain();
+});
 
 
 // ---------- Tabs ----------
