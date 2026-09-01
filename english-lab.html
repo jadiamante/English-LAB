@@ -166,11 +166,15 @@
   .status-line.ok{color:#7CC98A;}
   .status-line.err{color:#E35C5C;}
   .advanced-toggle{
-    background:none;border:none;color:var(--muted);font-size:12.5px;
-    cursor:pointer;padding:0;margin-bottom:14px;text-decoration:underline;
+    background:none;border:none;color:var(--muted);font-size:13px;
+    cursor:pointer;padding:10px 4px;text-decoration:underline;
+    display:block;width:100%;text-align:left;
   }
   .qr-section{
     border-top:1px solid var(--navy-600);padding-top:16px;margin-top:4px;margin-bottom:16px;
+  }
+  .advanced-section{
+    border-top:1px solid var(--navy-600);padding-top:16px;margin-top:4px;margin-bottom:28px;
   }
   #qrCanvas{image-rendering:pixelated;border-radius:6px;background:#fff;padding:8px;}
   #buddyQrCanvas{
@@ -197,6 +201,19 @@
   .tab-btn b{color:var(--gold-500);font-weight:600;margin-right:6px;}
   .tab-btn:hover{border-color:var(--gold-500);color:var(--ink);}
   .tab-btn.active{background:var(--navy-700);border-color:var(--gold-500);color:var(--cream);}
+
+  /* Pestaña de Traducción: aparece "creciendo" al habilitarla en Configuración → Avanzadas, y se
+     achica de vuelta al apagarla, en vez de aparecer/desaparecer de golpe con display:none. */
+  .translation-tab{
+    overflow:hidden; white-space:nowrap;
+    max-width:220px; opacity:1; border-width:1px;
+    transition: max-width .4s cubic-bezier(.34,1.15,.64,1), opacity .32s ease, padding .4s ease,
+                border-width .3s ease, background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .translation-tab.tab-collapsed{
+    max-width:0; opacity:0; padding-left:0; padding-right:0; border-width:0;
+    pointer-events:none;
+  }
 
   section.panel{display:none;}
   section.panel.active{display:block;animation:fade .25s ease;}
@@ -290,6 +307,20 @@
     0%,100%{box-shadow:0 0 0 0 rgba(227,92,92,0.45);}
     50%{box-shadow:0 0 0 8px rgba(227,92,92,0);}
   }
+  /* Llama la atención sobre "Reiniciar conversación" / "Charla en vivo" cuando se activa el
+     checkbox de "que arranque la IA" — 3 pulsos finitos (no para siempre, molestaría) y después
+     queda un borde sutil fijo hasta que se toque alguno de los dos botones. */
+  @keyframes ctaPulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(212,169,74,0.5);}
+    50%{box-shadow:0 0 0 6px rgba(212,169,74,0);}
+  }
+  .cta-highlight{
+    animation:ctaPulse 1.1s ease-out 3;
+    border-color:var(--gold-500) !important;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .cta-highlight{animation:none;}
+  }
   .voice-toggle{
     display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);
     cursor:pointer;user-select:none;
@@ -305,6 +336,20 @@
   .engine-card-icon{font-size:22px;}
   .engine-card-label{font-size:12.5px;line-height:1.35;}
   .engine-card.engine-active{background:rgba(155,135,217,0.16);border-color:var(--violet);color:var(--violet);}
+
+  .translation-mode-pair{display:flex;gap:10px;margin-bottom:18px;}
+  .translation-mode-pair .engine-card{flex:1;}
+
+  .dropzone{
+    border:2px dashed var(--navy-600);border-radius:10px;
+    padding:28px 16px;text-align:center;cursor:pointer;
+    background:var(--navy-900);margin-top:12px;transition:border-color .15s, background .15s;
+  }
+  .dropzone:hover, .dropzone:focus-visible{border-color:var(--gold-500);outline:none;}
+  .dropzone.drag-over{border-color:var(--violet);background:rgba(155,135,217,0.08);}
+  .dropzone-icon{font-size:26px;display:block;margin-bottom:8px;}
+  .dropzone p{margin:4px 0;font-size:13px;color:var(--muted);}
+  .dropzone-filename{color:var(--gold-300) !important;font-family:'IBM Plex Mono',monospace;font-size:12px !important;word-break:break-all;}
   .btn-pair-live{display:flex;gap:10px;align-items:stretch;}
   .btn-pair-live #liveModeBtn{flex:1;}
   .voice-toolbar{
@@ -545,6 +590,9 @@
     button.primary, button.secondary{padding:13px 14px;font-size:13.5px;min-height:46px;}
     .voice-config-btn{width:46px;height:46px;min-width:46px;}
     .voice-toolbar{padding:14px;gap:12px;}
+    .dropzone{padding:20px 12px;}
+    .translation-mode-pair{flex-direction:column;}
+    .translation-mode-pair .engine-card{flex-direction:row;justify-content:center;padding:12px;}
     .voice-toggle{padding:4px 0;min-height:32px;}
     .modal-box{padding:18px;max-width:100%;}
     .modal-actions button{min-height:46px;}
@@ -625,6 +673,7 @@
     <button class="tab-btn" data-tab="grammar"><b>02</b>Gramática &amp; Vocabulario</button>
     <button class="tab-btn" data-tab="writing"><b>03</b>Writing</button>
     <button class="tab-btn" data-tab="reading"><b>04</b>Lectura</button>
+    <button class="tab-btn translation-tab tab-collapsed" data-tab="translation" id="translationTabBtn"><b>05</b>Traducción</button>
   </nav>
 
   <!-- ============ TAB 1: CONVERSATION ============ -->
@@ -728,6 +777,59 @@
     </div>
   </section>
 
+  <!-- ============ TAB 5: TRADUCCIÓN (oculta hasta activarla en Configuración → Avanzadas) ============ -->
+  <section class="panel" id="panel-translation">
+    <div class="card">
+      <h2>🌐 Traducción español ↔ inglés</h2>
+      <p class="hint">Detecta el idioma solo. El texto/subtítulo se traduce en tu navegador pidiéndole a la IA, y el archivo resultante se arma acá mismo, sin tocar los tiempos si es un subtítulo.</p>
+
+      <div class="translation-mode-pair">
+        <button class="engine-card" id="txtModeBtn" type="button">
+          <span class="engine-card-icon">📄</span>
+          <span class="engine-card-label">Texto / archivo .txt</span>
+        </button>
+        <button class="engine-card" id="srtModeBtn" type="button">
+          <span class="engine-card-icon">🎬</span>
+          <span class="engine-card-label">Subtítulos (.srt / .vtt)</span>
+        </button>
+      </div>
+
+      <!-- Modo texto -->
+      <div id="txtTranslateMode">
+        <label class="field-label">PEGAR TEXTO (o soltá/elegí un archivo .txt abajo)</label>
+        <textarea id="txtTranslateInput" placeholder="Pegá acá el texto en español o en inglés..." style="min-height:110px;"></textarea>
+
+        <div class="dropzone" id="txtDropzone" tabindex="0">
+          <input type="file" id="txtFileInput" accept=".txt" style="display:none;">
+          <span class="dropzone-icon">📄</span>
+          <p>Arrastrá un archivo <strong>.txt</strong> acá, o tocá para buscarlo</p>
+          <p class="dropzone-filename" id="txtFileName"></p>
+        </div>
+
+        <button class="primary" id="translateTxtBtn" type="button" style="width:100%;margin-top:14px;">Traducir</button>
+      </div>
+
+      <!-- Modo subtítulos -->
+      <div id="srtTranslateMode" style="display:none;">
+        <div class="dropzone" id="srtDropzone" tabindex="0">
+          <input type="file" id="srtFileInput" accept=".srt,.vtt" style="display:none;">
+          <span class="dropzone-icon">🎬</span>
+          <p>Arrastrá un subtítulo <strong>.srt</strong> o <strong>.vtt</strong> acá, o tocá para buscarlo</p>
+          <p class="dropzone-filename" id="srtFileName"></p>
+        </div>
+        <p class="hint">Por ahora se soportan .srt y .vtt (los formatos más comunes). Los tiempos originales del archivo nunca se tocan — solo se reemplaza el texto.</p>
+        <button class="primary" id="translateSrtBtn" type="button" style="width:100%;margin-top:6px;" disabled>Traducir subtítulo</button>
+      </div>
+
+      <div id="translationStatus" class="status-line" style="margin-top:14px;"></div>
+      <div id="translationProgress" class="loading" style="display:none;margin-top:8px;"><span class="dot"></span> <span id="translationProgressText">Traduciendo…</span></div>
+      <div id="translationResultBox" style="display:none;margin-top:14px;">
+        <div class="task-box" id="translationPreview" style="max-height:220px;overflow-y:auto;white-space:pre-wrap;"></div>
+        <button class="primary" id="downloadTranslationBtn" type="button" style="width:100%;margin-top:12px;">⬇ Descargar traducido</button>
+      </div>
+    </div>
+  </section>
+
   <footer class="note">
     El nivel CEFR mostrado es una estimación orientativa generada por IA para motivarte a practicar, no un resultado oficial de examen.
   </footer>
@@ -817,6 +919,17 @@
         <input type="checkbox" id="shakeDetectionToggle">
         Detectar cuando agito el celular para sacudir al asistente
       </label>
+    </div>
+
+    <div class="advanced-section">
+      <button class="advanced-toggle" id="toggleAdvancedSettings" type="button">▸ Avanzadas</button>
+      <div id="advancedSettingsPanel" style="display:none;margin-top:12px;">
+        <label class="field-label">SECCIONES EXPERIMENTALES</label>
+        <label class="voice-toggle">
+          <input type="checkbox" id="translationSectionToggle">
+          🌐 Habilitar sección de Traducción (texto y subtítulos, ES↔EN)
+        </label>
+      </div>
     </div>
 
     <div class="modal-actions">
@@ -2616,9 +2729,39 @@ async function loadAiStartsPref(){
   const toggle = document.getElementById('aiStartsToggle');
   if(toggle) toggle.checked = aiStartsEnabled;
 }
+// Vuelve a disparar el pulso de atención en un botón, aunque ya se le hubiera aplicado antes en
+// esta misma sesión — sin el "reflow forzado" (leer offsetWidth), sacar y volver a poner la misma
+// clase CSS puede no reiniciar la animación si el navegador no llega a repintar en el medio.
+function triggerCtaHighlight(el){
+  el.classList.remove('cta-highlight');
+  void el.offsetWidth; // fuerza el repintado antes de volver a aplicar la clase
+  el.classList.add('cta-highlight');
+}
+
 document.getElementById('aiStartsToggle').addEventListener('change', async (e)=>{
   aiStartsEnabled = e.target.checked;
   try{ await storageSet('ai_starts_conversation', aiStartsEnabled ? '1' : '0', false); }catch(err){}
+
+  const resetBtn = document.getElementById('resetConv');
+  const liveBtn = document.getElementById('liveModeBtn');
+  if(aiStartsEnabled){
+    triggerCtaHighlight(resetBtn);
+    triggerCtaHighlight(liveBtn);
+    showBuddyMessage('Tocá "Reiniciar conversación" si querés que arranque escribiendo, o "Charla en vivo" si preferís que arranque hablando 🎙️');
+  } else {
+    resetBtn.classList.remove('cta-highlight');
+    liveBtn.classList.remove('cta-highlight');
+  }
+});
+// El resaltado cumplió su función apenas se toca cualquiera de los dos botones — se saca ahí,
+// no hace falta esperar a que termine el pulso solo.
+document.getElementById('resetConv').addEventListener('click', ()=>{
+  document.getElementById('resetConv').classList.remove('cta-highlight');
+  document.getElementById('liveModeBtn').classList.remove('cta-highlight');
+});
+document.getElementById('liveModeBtn').addEventListener('click', ()=>{
+  document.getElementById('resetConv').classList.remove('cta-highlight');
+  document.getElementById('liveModeBtn').classList.remove('cta-highlight');
 });
 
 document.getElementById('resetConv').addEventListener('click', ()=>{
@@ -3838,6 +3981,25 @@ function hideBuddyBubble(){
   if(!buddyMuted && !buddyDragging) drawBuddy('smile', false, false);
 }
 
+// Mensaje puntual del asistente (sin rotación, sin llamar a la IA) — para avisos cortos y directos
+// como "che, tocá tal botón", reutilizando el mismo globo de siempre.
+function showBuddyMessage(text){
+  if(buddyMuted || buddyDragging) return;
+  clearInterval(buddyRotateTimer);
+  if(buddyTalkAnim){ clearInterval(buddyTalkAnim); buddyTalkAnim = null; }
+  positionBubbleNearBuddy();
+  bubbleEl.classList.add('show');
+  buddyBubbleVisible = true;
+  buddyLastTipAt = Date.now();
+  bubbleTextEl.classList.remove('ok-pop');
+  bubbleTextEl.textContent = text;
+  buddyActionBtn.style.display = 'none';
+  buddyActionsDiv.style.display = 'flex';
+  requestAnimationFrame(alignBubbleArrow);
+  drawBuddy('talk', false, false);
+  setTimeout(()=>{ if(!buddyMuted && !buddyDragging) drawBuddy('smile', false, false); }, 700);
+}
+
 ['keydown','mousedown','input','touchstart'].forEach(evt=>{
   document.addEventListener(evt, (e)=>{
     if(buddyEl.contains(e.target) || bubbleEl.contains(e.target)) return;
@@ -4118,6 +4280,339 @@ if('serviceWorker' in navigator){
   });
 }
 
+// =====================================================
+// TAB 5: TRADUCCIÓN (ES↔EN) — texto/.txt y subtítulos (.srt/.vtt)
+// =====================================================
+// Diseño (charlado antes de escribir una línea de esto): la IA NUNCA toca tiempos ni estructura de
+// archivo — solo traduce un array de strings y devuelve otro array del mismo largo. Todo lo que es
+// parsear el formato, cortar en lotes, y reensamblar el archivo final es código determinístico, sin
+// IA de por medio. Esto es a propósito: si se le pide a la IA "traducime este archivo entero
+// manteniendo el formato" como texto libre, tarde o temprano fusiona líneas o reformatea un
+// timestamp — y ahí se desincroniza todo el subtítulo. Separar "estructura" (código) de
+// "contenido" (IA) evita ese problema de raíz.
+
+// ---------- Detección de idioma (heurística local, sin gastar una llamada a la IA) ----------
+// Con solo 2 idiomas candidatos (es/en), contar palabras comunes de cada uno alcanza y sobra —
+// no hace falta mandarle nada a la IA solo para saber en qué idioma está escrito el texto.
+const LANG_MARKERS = {
+  es: [' el ', ' la ', ' que ', ' de ', ' y ', ' en ', ' un ', ' es ', ' se ', ' no ', ' te ', ' lo ', ' por ', ' con ', ' para ', ' una ', ' los ', ' las ', ' está ', ' pero '],
+  en: [' the ', ' and ', ' is ', ' you ', ' that ', ' it ', ' of ', ' to ', ' a ', ' in ', ' was ', ' for ', ' on ', ' are ', ' with ', ' as ', ' this ', ' but ', ' have ', ' be '],
+};
+function detectLanguage(text){
+  const sample = ' ' + text.slice(0, 3000).toLowerCase().replace(/[.,!?¡¿"'();:]/g, ' ') + ' ';
+  let esScore = 0, enScore = 0;
+  LANG_MARKERS.es.forEach(w => { esScore += sample.split(w).length - 1; });
+  LANG_MARKERS.en.forEach(w => { enScore += sample.split(w).length - 1; });
+  return esScore >= enScore ? 'es' : 'en';
+}
+const LANG_NAMES = { es: 'español', en: 'inglés' };
+
+// ---------- Traducción por lotes, con contexto entre lotes ----------
+// Corta el array de líneas en lotes por cantidad de caracteres (no por cantidad de líneas), para
+// mantenerse cómodo bajo el límite de tokens por minuto de los proveedores gratuitos (Groq: 8000
+// TPM) sin importar si las líneas son cortas o largas.
+function chunkLines(lines, maxCharsPerBatch = 3000){
+  const batches = [];
+  let current = [], currentChars = 0;
+  for(const line of lines){
+    if(current.length && currentChars + line.length > maxCharsPerBatch){
+      batches.push(current);
+      current = []; currentChars = 0;
+    }
+    current.push(line);
+    currentChars += line.length;
+  }
+  if(current.length) batches.push(current);
+  return batches;
+}
+
+// Traduce UN lote (array de strings → array de strings, mismo largo). jsonMode fuerza que la
+// respuesta sea JSON válido; igual se valida el largo antes de confiar en el resultado.
+async function translateBatch(lines, sourceLang, targetLang, contextHint){
+  const system = `Sos un traductor profesional ${LANG_NAMES[sourceLang]}→${LANG_NAMES[targetLang]}. Te paso un array JSON de líneas de texto. Respondé ÚNICAMENTE con un objeto JSON con esta forma exacta: {"translations":["...","...",...]}, con EXACTAMENTE la misma cantidad de elementos que el array que te mandé, en el mismo orden — cada elemento es la traducción de la línea en esa misma posición. No fusiones líneas, no agregues ni saques líneas, no agregues comentarios ni explicaciones fuera del JSON. Mantené el tono y el registro natural del idioma de destino.${contextHint ? `\n\nÚltimas líneas ya traducidas antes de este lote (para mantener consistencia de tono/terminología — no las vuelvas a traducir, son solo referencia):\n${contextHint}` : ''}`;
+  const estimatedTokens = Math.max(700, Math.round(lines.join(' ').length * 1.8));
+  const raw = await callClaude(system, [{role:'user', content: JSON.stringify(lines)}], estimatedTokens, true);
+  const parsed = parseJsonLoose(raw);
+  const translations = (parsed && parsed.translations) || [];
+  if(translations.length !== lines.length){
+    throw new Error(`La IA devolvió ${translations.length} líneas, se esperaban ${lines.length}`);
+  }
+  return translations.map(toDisplayText);
+}
+
+// Un reintento extra si falla la validación de largo (ver diseño más arriba) — no reintenta infinito,
+// si vuelve a fallar se corta y se avisa, en vez de insistir a ciegas.
+async function translateBatchWithRetry(lines, sourceLang, targetLang, contextHint){
+  try{
+    return await translateBatch(lines, sourceLang, targetLang, contextHint);
+  }catch(e){
+    console.warn('[Traducción] Lote falló validación, reintentando una vez', e);
+    return await translateBatch(lines, sourceLang, targetLang, contextHint);
+  }
+}
+
+// Traduce un array completo de líneas, en los lotes que hagan falta, pasando de un lote al
+// siguiente las últimas 3 líneas ya traducidas como "ventana de continuidad" — así el tono/
+// terminología no cambia abruptamente entre un lote y el siguiente, sin tener que mandar el
+// archivo completo de nuevo en cada pedido (que rompería el límite de tokens por minuto).
+async function translateLines(lines, sourceLang, targetLang, onProgress){
+  const batches = chunkLines(lines);
+  let contextHint = '';
+  const result = [];
+  for(let i = 0; i < batches.length; i++){
+    if(onProgress) onProgress(i + 1, batches.length);
+    const batch = batches[i];
+    const translated = await translateBatchWithRetry(batch, sourceLang, targetLang, contextHint);
+    result.push(...translated);
+    const tailO = batch.slice(-3), tailT = translated.slice(-3);
+    contextHint = tailO.map((o, idx) => `${o} → ${tailT[idx]}`).join('\n');
+  }
+  return result;
+}
+
+// ---------- Parsers de subtítulos: SRT y WebVTT (los dos formatos más comunes en la práctica) ----------
+// A propósito NO se soporta MicroDVD/SubViewer (ambos usan la extensión .sub, pero son dos formatos
+// distintos entre sí, y MicroDVD mide el tiempo en NÚMERO DE FRAME en vez de tiempo real — necesita
+// saber el frame rate del video, que casi nunca viene en el archivo, así que es ambiguo por diseño).
+function detectSubtitleFormat(filename, content){
+  const trimmed = content.trim();
+  if(/^WEBVTT/i.test(trimmed)) return 'vtt';
+  if(/^\d+\s*\r?\n\d{2}:\d{2}:\d{2}[,.]\d{3}\s*-->/.test(trimmed)) return 'srt';
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+  if(ext === 'vtt') return 'vtt';
+  if(ext === 'srt') return 'srt';
+  return null;
+}
+
+function parseSRT(content){
+  const blocks = content.replace(/\r/g, '').trim().split(/\n\n+/);
+  return blocks.map(block => {
+    const lines = block.split('\n');
+    return { index: lines[0] ? lines[0].trim() : '', timing: lines[1] || '', text: lines.slice(2).join('\n') };
+  }).filter(c => c.timing.includes('-->'));
+}
+function buildSRT(cues){
+  return cues.map(c => `${c.index}\n${c.timing}\n${c.text}`).join('\n\n') + '\n';
+}
+
+function parseVTT(content){
+  const body = content.replace(/\r/g, '').replace(/^WEBVTT[^\n]*\n/i, '').trim();
+  const blocks = body.split(/\n\n+/);
+  return blocks.map(block => {
+    const lines = block.split('\n');
+    const hasIndex = lines.length && !lines[0].includes('-->');
+    const index = hasIndex ? lines[0].trim() : '';
+    const timing = hasIndex ? (lines[1] || '') : (lines[0] || '');
+    const text = lines.slice(hasIndex ? 2 : 1).join('\n');
+    return { index, timing, text };
+  }).filter(c => c.timing.includes('-->'));
+}
+function buildVTT(cues){
+  const body = cues.map(c => (c.index ? c.index + '\n' : '') + c.timing + '\n' + c.text).join('\n\n');
+  return 'WEBVTT\n\n' + body + '\n';
+}
+
+// ---------- Orquestación: subtítulo completo ----------
+async function translateSubtitleFile(filename, content, onProgress){
+  const format = detectSubtitleFormat(filename, content);
+  if(!format) throw new Error('Formato no reconocido — por ahora soportamos .srt y .vtt.');
+  const cues = format === 'srt' ? parseSRT(content) : parseVTT(content);
+  if(!cues.length) throw new Error('No se encontraron líneas de subtítulo válidas en el archivo.');
+
+  const texts = cues.map(c => c.text);
+  const sourceLang = detectLanguage(texts.join(' '));
+  const targetLang = sourceLang === 'es' ? 'en' : 'es';
+  const translatedTexts = await translateLines(texts, sourceLang, targetLang, onProgress);
+
+  const translatedCues = cues.map((c, i) => Object.assign({}, c, { text: translatedTexts[i] }));
+  const output = format === 'srt' ? buildSRT(translatedCues) : buildVTT(translatedCues);
+  return { output, sourceLang, targetLang, format, count: cues.length };
+}
+
+// ---------- Orquestación: texto plano (typeado o .txt) ----------
+async function translatePlainText(text, onProgress){
+  const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  if(!paragraphs.length) throw new Error('No hay texto para traducir.');
+  const sourceLang = detectLanguage(text);
+  const targetLang = sourceLang === 'es' ? 'en' : 'es';
+  const translated = await translateLines(paragraphs, sourceLang, targetLang, onProgress);
+  return { output: translated.join('\n\n'), sourceLang, targetLang };
+}
+
+// ---------- Dropzone genérica: drag&drop + click para buscar archivo (funciona igual en Chrome/
+// Firefox/Safari — File API y drag&drop son estándares soportados hace años en los tres; en
+// celular, como no hay "arrastrar" real desde el sistema operativo, el click abre el selector
+// nativo de archivos, que es como se sube un archivo en mobile de todas formas). ----------
+function setupDropzone(dropzoneEl, inputEl, onFile){
+  dropzoneEl.addEventListener('click', () => inputEl.click());
+  dropzoneEl.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); inputEl.click(); } });
+  dropzoneEl.addEventListener('dragover', (e) => { e.preventDefault(); dropzoneEl.classList.add('drag-over'); });
+  dropzoneEl.addEventListener('dragleave', () => dropzoneEl.classList.remove('drag-over'));
+  dropzoneEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzoneEl.classList.remove('drag-over');
+    if(e.dataTransfer.files.length) onFile(e.dataTransfer.files[0]);
+  });
+  inputEl.addEventListener('change', () => {
+    if(inputEl.files.length) onFile(inputEl.files[0]);
+  });
+}
+
+// Dispara la descarga de un archivo de texto armado en memoria (mismo patrón Blob + URL.createObjectURL
+// que ya usamos para el audio de Kokoro). El atributo download tiene buen soporte en Chrome/Firefox/
+// Safari modernos; en iOS puede abrir el archivo en vez de "descargarlo" directo — es comportamiento
+// del sistema operativo, no algo que se pueda forzar distinto desde acá.
+function downloadTextFile(filename, content, mime){
+  const blob = new Blob([content], { type: (mime || 'text/plain') + ';charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ---------- UI: elegir modo (texto vs subtítulos) ----------
+function setTranslationMode(mode){
+  document.getElementById('txtModeBtn').classList.toggle('engine-active', mode === 'txt');
+  document.getElementById('srtModeBtn').classList.toggle('engine-active', mode === 'srt');
+  document.getElementById('txtTranslateMode').style.display = mode === 'txt' ? 'block' : 'none';
+  document.getElementById('srtTranslateMode').style.display = mode === 'srt' ? 'block' : 'none';
+  document.getElementById('translationResultBox').style.display = 'none';
+  setStatus(document.getElementById('translationStatus'), '');
+}
+document.getElementById('txtModeBtn').addEventListener('click', () => setTranslationMode('txt'));
+document.getElementById('srtModeBtn').addEventListener('click', () => setTranslationMode('srt'));
+
+// ---------- UI: dropzone de texto (.txt) ----------
+let txtSourceFilename = null;
+setupDropzone(document.getElementById('txtDropzone'), document.getElementById('txtFileInput'), async (file) => {
+  try{
+    const text = await file.text();
+    document.getElementById('txtTranslateInput').value = text;
+    txtSourceFilename = file.name;
+    document.getElementById('txtFileName').textContent = '📎 ' + file.name;
+  }catch(e){
+    setStatus(document.getElementById('translationStatus'), 'No pude leer ese archivo.', 'err');
+  }
+});
+
+// ---------- UI: dropzone de subtítulos ----------
+let srtSourceFile = null; // { filename, content }
+setupDropzone(document.getElementById('srtDropzone'), document.getElementById('srtFileInput'), async (file) => {
+  try{
+    const content = await file.text();
+    const format = detectSubtitleFormat(file.name, content);
+    const btn = document.getElementById('translateSrtBtn');
+    if(!format){
+      document.getElementById('srtFileName').textContent = '';
+      setStatus(document.getElementById('translationStatus'), 'Ese archivo no parece un .srt o .vtt válido.', 'err');
+      btn.disabled = true;
+      srtSourceFile = null;
+      return;
+    }
+    srtSourceFile = { filename: file.name, content };
+    document.getElementById('srtFileName').textContent = '📎 ' + file.name + ` (${format.toUpperCase()})`;
+    setStatus(document.getElementById('translationStatus'), '');
+    btn.disabled = false;
+  }catch(e){
+    setStatus(document.getElementById('translationStatus'), 'No pude leer ese archivo.', 'err');
+  }
+});
+
+// ---------- Traducir: texto ----------
+document.getElementById('translateTxtBtn').addEventListener('click', async () => {
+  const text = document.getElementById('txtTranslateInput').value.trim();
+  const statusEl = document.getElementById('translationStatus');
+  const progressEl = document.getElementById('translationProgress');
+  const progressText = document.getElementById('translationProgressText');
+  const resultBox = document.getElementById('translationResultBox');
+  if(!text){ setStatus(statusEl, 'Escribí o subí algo de texto primero.', 'err'); return; }
+  resultBox.style.display = 'none';
+  setStatus(statusEl, '');
+  progressEl.style.display = 'flex';
+  document.getElementById('translateTxtBtn').disabled = true;
+  try{
+    const { output, sourceLang, targetLang } = await translatePlainText(text, (i, total) => {
+      progressText.textContent = total > 1 ? `Traduciendo lote ${i} de ${total}…` : 'Traduciendo…';
+    });
+    document.getElementById('translationPreview').textContent = output;
+    resultBox.style.display = 'block';
+    const outName = (txtSourceFilename ? txtSourceFilename.replace(/\.txt$/i, '') : 'traduccion') + `_${targetLang}.txt`;
+    document.getElementById('downloadTranslationBtn').onclick = () => downloadTextFile(outName, output);
+    setStatus(statusEl, `Traducido de ${LANG_NAMES[sourceLang]} a ${LANG_NAMES[targetLang]} ✓`, 'ok');
+  }catch(e){
+    console.error('[Traducción] Error traduciendo texto', e);
+    setStatus(statusEl, 'Error al traducir: ' + (e?.message || e), 'err');
+  }
+  progressEl.style.display = 'none';
+  document.getElementById('translateTxtBtn').disabled = false;
+});
+
+// ---------- Traducir: subtítulo ----------
+document.getElementById('translateSrtBtn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('translationStatus');
+  const progressEl = document.getElementById('translationProgress');
+  const progressText = document.getElementById('translationProgressText');
+  const resultBox = document.getElementById('translationResultBox');
+  if(!srtSourceFile){ setStatus(statusEl, 'Subí un archivo de subtítulo primero.', 'err'); return; }
+  resultBox.style.display = 'none';
+  setStatus(statusEl, '');
+  progressEl.style.display = 'flex';
+  document.getElementById('translateSrtBtn').disabled = true;
+  try{
+    const { output, sourceLang, targetLang, format, count } = await translateSubtitleFile(
+      srtSourceFile.filename, srtSourceFile.content,
+      (i, total) => { progressText.textContent = total > 1 ? `Traduciendo lote ${i} de ${total} (${count} líneas en total)…` : `Traduciendo ${count} líneas…`; }
+    );
+    document.getElementById('translationPreview').textContent = output;
+    resultBox.style.display = 'block';
+    const baseName = srtSourceFile.filename.replace(/\.(srt|vtt)$/i, '');
+    const outName = `${baseName}_${targetLang}.${format}`;
+    document.getElementById('downloadTranslationBtn').onclick = () => downloadTextFile(outName, output);
+    setStatus(statusEl, `Traducido de ${LANG_NAMES[sourceLang]} a ${LANG_NAMES[targetLang]} — ${count} líneas ✓`, 'ok');
+  }catch(e){
+    console.error('[Traducción] Error traduciendo subtítulo', e);
+    setStatus(statusEl, 'Error al traducir: ' + (e?.message || e), 'err');
+  }
+  progressEl.style.display = 'none';
+  document.getElementById('translateSrtBtn').disabled = false;
+});
+
+// ---------- Habilitar/deshabilitar la sección entera (oculta por defecto — se activa en Configuración → Avanzadas) ----------
+let translationSectionEnabled = false;
+async function loadTranslationSectionPref(){
+  try{
+    const r = await storageGet('translation_section_enabled', false);
+    translationSectionEnabled = r && r.value === '1';
+  }catch(e){}
+  applyTranslationSectionVisibility();
+  document.getElementById('translationSectionToggle').checked = translationSectionEnabled;
+}
+function applyTranslationSectionVisibility(){
+  const tabBtn = document.getElementById('translationTabBtn');
+  tabBtn.classList.toggle('tab-collapsed', !translationSectionEnabled);
+  if(!translationSectionEnabled && tabBtn.classList.contains('active')){
+    // si la apagan estando parado ahí, volvemos a Conversación en vez de dejar la pantalla vacía
+    document.querySelector('.tab-btn[data-tab="conversation"]').click();
+  }
+}
+document.getElementById('translationSectionToggle').addEventListener('change', async (e) => {
+  translationSectionEnabled = e.target.checked;
+  applyTranslationSectionVisibility();
+  try{ await storageSet('translation_section_enabled', translationSectionEnabled ? '1' : '0', false); }catch(err){}
+});
+
+// ---------- Panel colapsable "Avanzadas" en Configuración ----------
+document.getElementById('toggleAdvancedSettings').addEventListener('click', () => {
+  const panel = document.getElementById('advancedSettingsPanel');
+  const btn = document.getElementById('toggleAdvancedSettings');
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  btn.textContent = isOpen ? '▸ Avanzadas' : '▾ Avanzadas';
+});
+
 // ---------- init ----------
 loadApiKey();
 loadProgress();
@@ -4125,6 +4620,7 @@ loadLearnerProfile();
 loadSpeakPref();
 loadAiStartsPref();
 loadShakeDetectionPref();
+loadTranslationSectionPref();
 loadVoiceProfiles();
 
 // ---------- Código QR para compartir la app (se genera acá mismo, nunca se manda a un servicio externo) ----------
