@@ -145,6 +145,16 @@
   .modal-actions{display:flex;gap:10px;margin-bottom:14px;}
   .modal-link{color:var(--gold-500);font-size:12.5px;text-decoration:none;}
   .modal-link:hover{text-decoration:underline;}
+
+  /* Agrupa cada sección de un modal (perfil, motor de voz, etc.) con una separación clara,
+     en vez de que los campos queden todos pegados uno arriba del otro. */
+  .modal-section{padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--navy-700);}
+  .modal-section:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+  .modal-section .hint{margin-top:6px;margin-bottom:0;}
+  .modal-section > select:last-child, .modal-section > input:last-child, .modal-section > button:last-child{margin-bottom:0;}
+  #kokoroLoadBtn{margin-top:6px;}
+
+  input[type=range]{width:100%;margin:0 0 4px;accent-color:var(--gold-500);cursor:pointer;}
   .provider-warning{
     background:rgba(227,155,45,0.1);border:1px solid rgba(227,155,45,0.35);
     border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.5;
@@ -241,10 +251,12 @@
     padding:10px 12px;
     border-radius:7px;
     width:100%;
+    margin-bottom:16px;
   }
   textarea{resize:vertical;min-height:130px;line-height:1.5;}
-  label.field-label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-family:'IBM Plex Mono',monospace;letter-spacing:.03em;}
+  label.field-label{display:block;font-size:12px;color:var(--muted);margin:0 0 8px;font-family:'IBM Plex Mono',monospace;letter-spacing:.03em;}
   .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;}
+  .row > input[type=text]{margin-bottom:0;} /* cuando el input va directo en la fila (no en un div envoltorio), que no se desalinee con el botón de al lado */
   .row > div{flex:1;min-width:180px;}
 
   .loading{color:var(--gold-300);font-size:13px;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:8px;}
@@ -262,7 +274,7 @@
   .coherence-flag{margin-top:8px;padding-top:8px;border-top:1px dashed var(--navy-600);font-size:12.5px;color:#E3A96B;line-height:1.5;}
   .phonetics-flag{margin-top:8px;padding-top:8px;border-top:1px dashed var(--navy-600);font-size:12.5px;color:var(--violet);line-height:1.5;}
   .chat-input-row{display:flex;gap:10px;}
-  .chat-input-row textarea{min-height:52px;}
+  .chat-input-row textarea{min-height:52px;margin-bottom:0;}
   .mic-btn{
     background:var(--navy-900);border:1px solid var(--navy-600);border-radius:8px;
     width:52px;min-width:52px;height:52px;font-size:20px;cursor:pointer;
@@ -284,7 +296,15 @@
   }
   .voice-toggle input{width:auto;margin:0;}
   .btn-pair{display:flex;gap:10px;}
-  .btn-pair button.engine-active{background:rgba(155,135,217,0.22);border-color:var(--violet);color:var(--violet);}
+  .engine-pair{display:flex;gap:10px;}
+  .engine-card{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;
+    background:var(--navy-900);border:1px solid var(--navy-600);border-radius:10px;
+    padding:16px 10px;cursor:pointer;color:var(--muted);text-align:center;
+  }
+  .engine-card-icon{font-size:22px;}
+  .engine-card-label{font-size:12.5px;line-height:1.35;}
+  .engine-card.engine-active{background:rgba(155,135,217,0.16);border-color:var(--violet);color:var(--violet);}
   .btn-pair-live{display:flex;gap:10px;align-items:stretch;}
   .btn-pair-live #liveModeBtn{flex:1;}
   .voice-toolbar{
@@ -813,45 +833,57 @@
 
     <div id="voiceHelpNotice" class="provider-warning" style="display:none;"></div>
 
-    <label class="field-label">PERFIL</label>
-    <select id="voiceProfileSelect"></select>
-
-    <label class="field-label">MOTOR DE VOZ</label>
-    <div class="btn-pair" style="margin-bottom:14px;">
-      <button class="secondary" id="engineBrowserBtn" type="button">🖥️ Voces del sistema</button>
-      <button class="secondary" id="engineKokoroBtn" type="button">🎙️ Kokoro (local, alta calidad)</button>
+    <div class="modal-section">
+      <label class="field-label">PERFIL</label>
+      <select id="voiceProfileSelect"></select>
     </div>
 
-    <div id="browserVoicePanel">
+    <div class="modal-section">
+      <label class="field-label">MOTOR DE VOZ</label>
+      <div class="engine-pair">
+        <button class="engine-card" id="engineBrowserBtn" type="button">
+          <span class="engine-card-icon">🖥️</span>
+          <span class="engine-card-label">Voces del sistema</span>
+        </button>
+        <button class="engine-card" id="engineKokoroBtn" type="button">
+          <span class="engine-card-icon">🎙️</span>
+          <span class="engine-card-label">Kokoro (local, alta calidad)</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-section" id="browserVoicePanel">
       <label class="field-label">VOZ / ACENTO</label>
       <select id="voiceSelect"></select>
-      <p class="hint" style="margin-top:-8px;">La lista sale de las voces que ya tiene instaladas tu navegador/dispositivo — varía según Chrome, Safari, Android o iOS.</p>
+      <p class="hint">La lista sale de las voces que ya tiene instaladas tu navegador/dispositivo — varía según Chrome, Safari, Android o iOS.</p>
     </div>
 
-    <div id="kokoroVoicePanel" style="display:none;">
+    <div class="modal-section" id="kokoroVoicePanel" style="display:none;">
       <label class="field-label">VOZ KOKORO</label>
       <select id="kokoroVoiceSelect"></select>
-      <p class="hint" style="margin-top:-8px;margin-bottom:10px;">Voz neuronal que corre 100% en tu navegador — no depende de lo que tenga instalado tu sistema operativo. Se descarga una sola vez (~50-150MB).</p>
+      <p class="hint">Voz neuronal que corre 100% en tu navegador — no depende de lo que tenga instalado tu sistema operativo. Se descarga una sola vez (~50-150MB).</p>
       <div id="kokoroStatus" class="status-line"></div>
-      <button class="secondary" id="kokoroLoadBtn" type="button" style="margin-bottom:14px;">Descargar y cargar voz Kokoro</button>
+      <button class="secondary" id="kokoroLoadBtn" type="button">Descargar y cargar voz Kokoro</button>
     </div>
 
-    <label class="field-label" id="pitchLabel">TONO (más grave ↔ más agudo): <span id="voicePitchVal">1.0</span></label>
-    <input type="range" id="voicePitchInput" min="0.5" max="2" step="0.1" value="1" style="width:100%;margin-bottom:16px;">
+    <div class="modal-section">
+      <label class="field-label" id="pitchLabel">TONO (más grave ↔ más agudo): <span id="voicePitchVal">1.0</span></label>
+      <input type="range" id="voicePitchInput" min="0.5" max="2" step="0.1" value="1">
 
-    <label class="field-label">VELOCIDAD (más lento ↔ más rápido): <span id="voiceRateVal">1.0</span></label>
-    <input type="range" id="voiceRateInput" min="0.5" max="2" step="0.1" value="1" style="width:100%;margin-bottom:16px;">
+      <label class="field-label" style="margin-top:14px;">VELOCIDAD (más lento ↔ más rápido): <span id="voiceRateVal">1.0</span></label>
+      <input type="range" id="voiceRateInput" min="0.5" max="2" step="0.1" value="1">
 
-    <div class="modal-actions">
-      <button class="secondary" id="voiceTestBtn" type="button">▶ Probar voz</button>
+      <button class="secondary" id="voiceTestBtn" type="button" style="width:100%;margin-top:6px;">▶ Probar voz</button>
     </div>
 
-    <label class="field-label">GUARDAR COMO PERFIL NUEVO</label>
-    <div class="row" style="margin-bottom:4px;">
-      <input type="text" id="voiceProfileNameInput" placeholder="Ej: Profesora británica" style="flex:1;">
-      <button class="secondary" id="voiceProfileSaveBtn" type="button">Guardar</button>
+    <div class="modal-section">
+      <label class="field-label">GUARDAR COMO PERFIL NUEVO</label>
+      <div class="row" style="margin-bottom:6px;">
+        <input type="text" id="voiceProfileNameInput" placeholder="Ej: Profesora británica" style="flex:1;">
+        <button class="secondary" id="voiceProfileSaveBtn" type="button">Guardar</button>
+      </div>
+      <button class="advanced-toggle" id="voiceProfileDeleteBtn" type="button" style="display:none;">Eliminar el perfil seleccionado</button>
     </div>
-    <button class="advanced-toggle" id="voiceProfileDeleteBtn" type="button" style="display:none;">Eliminar el perfil seleccionado</button>
 
     <div class="modal-actions">
       <button class="primary" id="applyVoiceSettings">Usar esta voz ahora</button>
@@ -861,6 +893,37 @@
 </div>
 
 <script>
+/**
+ * ============================================================================
+ * ÍNDICE — dónde está cada cosa en este archivo (Ctrl+F el título entre
+ * comillas para saltar directo, todos son comentarios de sección reales
+ * en el código). Ver documentacion.txt para la explicación completa de
+ * cada parte, con fragmentos de código y el porqué de las decisiones.
+ * ============================================================================
+ *  1. IA: proveedores, modelo local, servidor avanzado, enrutador (callClaude)
+ *     "Configuración de proveedores de IA" / "Modelo local en el navegador"
+ *     "Detección de servidor local avanzado" / "Llamada a la IA"
+ *  2. Storage, progreso y perfil de aprendizaje
+ *     "Storage con fallback" / "Progress storage" / "Perfil de aprendizaje"
+ *  3. Tabs y navegación entre secciones — "Tabs"
+ *  4. TAB 1: Conversación (incluye Charla en vivo y transcripción)
+ *     "TAB 1: CONVERSATION" / "Modo \"Charla en vivo\"" / "Transcripción local"
+ *  5. Voz: síntesis nativa, perfiles de voz, Kokoro (voz local descargable)
+ *     "Voz: dictado por micrófono" / "Perfiles de voz" / "Kokoro"
+ *     "Modal de configuración de voz"
+ *  6. TAB 2: Gramática — "TAB 2: GRAMMAR"
+ *  7. TAB 3: Writing — "TAB 3: WRITING"
+ *  8. TAB 4: Lectura — "TAB 4: READING"
+ *  9. El asistente (buddy): estado, dibujo, movimiento, globo de diálogo,
+ *     modo lectura, sacudida, gestos sueltos — todo bajo "BUDDY: asistente
+ *     pixel-art", con sub-secciones marcadas adentro
+ * 10. Conexión a internet y modo offline — "Conexión a internet"
+ * 11. Service Worker — "Service Worker"
+ * 12. Código QR para compartir la app — "Código QR para compartir la app"
+ * 13. Inicialización de la app — "init"
+ * ============================================================================
+ */
+
 // ---------- Configuración de proveedores de IA ----------
 // Modelos por defecto. Si alguno deja de funcionar (pasa seguido con los gratuitos),
 // se puede editar el campo "Modelo" directo en la app sin tocar código.
@@ -869,6 +932,13 @@ const PROVIDER_DEFAULTS = {
   cerebras: { model: "llama3.1-8b" },
   openrouter: { model: "meta-llama/llama-3.3-70b-instruct:free" },
   advanced: { url: "http://localhost:11434/v1", model: "llama3.1" }
+};
+// URLs de los proveedores en la nube (todos hablan el mismo formato de API que OpenAI) — usado por
+// callClaude() para armar el pedido sin repetir la misma estructura de URL/headers tres veces.
+const PROVIDER_ENDPOINTS = {
+  groq: { url: "https://api.groq.com/openai/v1/chat/completions" },
+  cerebras: { url: "https://api.cerebras.ai/v1/chat/completions" },
+  openrouter: { url: "https://openrouter.ai/api/v1/chat/completions" },
 };
 // Modelo chico para correr 100% en el navegador con transformers.js (sin key, sin servidor)
 const LOCAL_MODEL_ID = "onnx-community/Qwen2.5-0.5B-Instruct";
@@ -957,15 +1027,13 @@ async function loadLocalModel(){
   const statusEl = document.getElementById('localStatus');
   const btn = document.getElementById('localLoadBtn');
   if(localGenerator){
-    statusEl.textContent = 'Modelo ya cargado ✓';
-    statusEl.className = 'status-line ok';
+    setStatus(statusEl, 'Modelo ya cargado ✓', 'ok');
     return;
   }
   if(localLoading) return;
   localLoading = true;
   if(btn) btn.disabled = true;
-  statusEl.className = 'status-line';
-  statusEl.textContent = 'Descargando modelo (puede tardar unos minutos la primera vez)...';
+  setStatus(statusEl, 'Descargando modelo (puede tardar unos minutos la primera vez)...');
   try{
     localGenerator = await withRetries(async ()=>{
       const { pipeline } = await loadTransformersLib();
@@ -973,19 +1041,17 @@ async function loadLocalModel(){
         dtype: 'q4',
         progress_callback: (p)=>{
           if(p && p.status === 'progress' && typeof p.progress === 'number'){
-            statusEl.textContent = `Descargando modelo... ${Math.round(p.progress)}%`;
+            setStatus(statusEl, `Descargando modelo... ${Math.round(p.progress)}%`);
           }
         }
       });
     }, {
-      onRetry: (attempt, total)=>{ statusEl.textContent = `Se cortó la descarga, reintentando (${attempt}/${total-1})…`; }
+      onRetry: (attempt, total)=>{ setStatus(statusEl, `Se cortó la descarga, reintentando (${attempt}/${total-1})…`); }
     });
-    statusEl.textContent = 'Modelo cargado y listo ✓';
-    statusEl.className = 'status-line ok';
+    setStatus(statusEl, 'Modelo cargado y listo ✓', 'ok');
   }catch(e){
     console.error('Fallo cargando el modelo local', e);
-    statusEl.textContent = 'No se pudo cargar el modelo local: ' + (e?.message || e) + ' — probá recargar la página e intentar de nuevo.';
-    statusEl.className = 'status-line err';
+    setStatus(statusEl, 'No se pudo cargar el modelo local: ' + (e?.message || e) + ' — probá recargar la página e intentar de nuevo.', 'err');
     localGenerator = null;
   }
   localLoading = false;
@@ -1014,19 +1080,16 @@ async function detectAdvancedServer(){
   const statusEl = document.getElementById('advancedStatus');
   const url = document.getElementById('advancedUrlInput').value.trim() || PROVIDER_DEFAULTS.advanced.url;
   const base = url.replace(/\/+$/,'');
-  statusEl.className = 'status-line';
-  statusEl.textContent = 'Buscando servidor...';
+  setStatus(statusEl, 'Buscando servidor...');
   try{
     const res = await fetch(base + '/models', { method: 'GET' });
     if(res.ok){
-      statusEl.textContent = 'Servidor encontrado ✓';
-      statusEl.className = 'status-line ok';
+      setStatus(statusEl, 'Servidor encontrado ✓', 'ok');
       return;
     }
     throw new Error('HTTP ' + res.status);
   }catch(e){
-    statusEl.textContent = 'No se encontró ahí. Revisá que esté prendido, la URL, y que permita conexiones desde el navegador (CORS) si tu app corre online.';
-    statusEl.className = 'status-line err';
+    setStatus(statusEl, 'No se encontró ahí. Revisá que esté prendido, la URL, y que permita conexiones desde el navegador (CORS) si tu app corre online.', 'err');
   }
 }
 
@@ -1053,27 +1116,28 @@ async function callClaude(system, messages, maxTokens=1000, jsonMode=false){
   ];
 
   let url, headers, body;
-  if(provider === 'groq'){
-    url = "https://api.groq.com/openai/v1/chat/completions";
-    headers = { "Content-Type":"application/json", "Authorization": `Bearer ${AI_SETTINGS.groq.key}` };
-    body = { model: AI_SETTINGS.groq.model || PROVIDER_DEFAULTS.groq.model, messages: chatMessages, max_tokens: maxTokens, reasoning_effort: "low" };
-    if(jsonMode) body.response_format = { type: "json_object" };
-  } else if(provider === 'cerebras'){
-    url = "https://api.cerebras.ai/v1/chat/completions";
-    headers = { "Content-Type":"application/json", "Authorization": `Bearer ${AI_SETTINGS.cerebras.key}` };
-    body = { model: AI_SETTINGS.cerebras.model || PROVIDER_DEFAULTS.cerebras.model, messages: chatMessages, max_tokens: maxTokens };
-    if(jsonMode) body.response_format = { type: "json_object" };
-  } else if(provider === 'openrouter'){
-    url = "https://openrouter.ai/api/v1/chat/completions";
-    headers = { "Content-Type":"application/json", "Authorization": `Bearer ${AI_SETTINGS.openrouter.key}`, "HTTP-Referer": location.origin, "X-Title": "English Lab" };
-    body = { model: AI_SETTINGS.openrouter.model || PROVIDER_DEFAULTS.openrouter.model, messages: chatMessages, max_tokens: maxTokens };
-    if(jsonMode) body.response_format = { type: "json_object" };
-  } else if(provider === 'advanced'){
+  if(provider === 'advanced'){
+    // El servidor "Avanzada" es aparte del resto: la URL la define el usuario, la key es opcional
+    // (muchos servidores locales tipo Ollama no la piden), y no forzamos response_format porque no
+    // todos los servidores OpenAI-compatible lo soportan igual.
     const base = (AI_SETTINGS.advanced.url || PROVIDER_DEFAULTS.advanced.url).replace(/\/+$/,'');
     url = base + "/chat/completions";
     headers = { "Content-Type":"application/json" };
     if(AI_SETTINGS.advanced.key) headers["Authorization"] = `Bearer ${AI_SETTINGS.advanced.key}`;
     body = { model: AI_SETTINGS.advanced.model || PROVIDER_DEFAULTS.advanced.model, messages: chatMessages, max_tokens: maxTokens };
+  } else {
+    // Groq, Cerebras y OpenRouter comparten la misma forma de pedido (API compatible con OpenAI) —
+    // arman su URL/headers/body a partir de esta única tabla en vez de repetir el mismo bloque
+    // tres veces con solo la URL/nombre cambiado.
+    const cfg = PROVIDER_ENDPOINTS[provider];
+    url = cfg.url;
+    headers = { "Content-Type":"application/json", "Authorization": `Bearer ${AI_SETTINGS[provider].key}` };
+    if(provider === 'openrouter'){ headers["HTTP-Referer"] = location.origin; headers["X-Title"] = "English Lab"; }
+    body = { model: AI_SETTINGS[provider].model || PROVIDER_DEFAULTS[provider].model, messages: chatMessages, max_tokens: maxTokens };
+    // gpt-oss-120b (el modelo por defecto de Groq) es un modelo "razonador": sin este ajuste gasta
+    // presupuesto de tokens "pensando" antes de responder y corta respuestas cortas a mitad de camino.
+    if(provider === 'groq') body.reasoning_effort = "low";
+    if(jsonMode) body.response_format = { type: "json_object" };
   }
 
   const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
@@ -1109,6 +1173,15 @@ function toDisplayText(v){
     try{ return JSON.stringify(v); }catch(e){ return String(v); }
   }
   return String(v);
+}
+
+// Actualiza un elemento .status-line con texto + color según el resultado (neutro/ok/error) — este
+// mismo patrón (textContent + className condicional) estaba repetido a mano más de 10 veces en
+// los distintos flujos de carga (modelo local, Kokoro, transcriptor local).
+function setStatus(el, text, kind){
+  if(!el) return;
+  el.textContent = text;
+  el.className = 'status-line' + (kind ? ' ' + kind : '');
 }
 
 // ---------- Modal de configuración ----------
@@ -1184,8 +1257,7 @@ function openApiModal(){
   localStatusEl.textContent = localGenerator ? 'Modelo cargado y listo ✓' : '';
   localStatusEl.className = localGenerator ? 'status-line ok' : 'status-line';
   const advStatusEl = document.getElementById('advancedStatus');
-  advStatusEl.textContent = '';
-  advStatusEl.className = 'status-line';
+  setStatus(advStatusEl, '');
   document.getElementById('shakeDetectionToggle').checked = (shakeDetectionPref !== false);
   switchProviderPanel(AI_PROVIDER);
   document.getElementById('apiModalOverlay').classList.add('show');
@@ -1648,41 +1720,42 @@ async function loadKokoroTTS(){
   const statusEl = document.getElementById('kokoroStatus');
   const btn = document.getElementById('kokoroLoadBtn');
   if(kokoroTTS){
-    if(statusEl){ statusEl.textContent = 'Voz Kokoro ya cargada ✓'; statusEl.className = 'status-line ok'; }
+    setStatus(statusEl, 'Voz Kokoro ya cargada ✓', 'ok');
     return kokoroTTS;
   }
   if(kokoroLoading) return null;
   kokoroLoading = true;
   if(btn) btn.disabled = true;
-  if(statusEl){ statusEl.className = 'status-line'; statusEl.textContent = 'Descargando voz Kokoro (puede tardar unos minutos la primera vez)...'; }
+  setStatus(statusEl, 'Descargando voz Kokoro (puede tardar unos minutos la primera vez)...');
   try{
     kokoroTTS = await withRetries(async ()=>{
       // Versión fijada a la que está CONFIRMADA como probada junto con este modelo exacto en la
       // documentación oficial (el anuncio original, el README del modelo y el PR de la librería
       // usan siempre esta combinación puntual) — mezclar versiones no confirmadas entre sí fue
-      // justamente la causa real de que la voz saliera rota/en otro idioma.
+      // justamente la causa real de que la voz saliera rota/en otro idioma (ver bug #20 en la
+      // documentación del proyecto).
       const { KokoroTTS } = await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.0.1');
       return await KokoroTTS.from_pretrained(KOKORO_MODEL_ID, {
         dtype: 'q8',
         progress_callback: (p)=>{
-          if(statusEl && p && p.status === 'progress' && typeof p.progress === 'number'){
-            statusEl.textContent = `Descargando voz Kokoro... ${Math.round(p.progress)}%`;
+          if(p && p.status === 'progress' && typeof p.progress === 'number'){
+            setStatus(statusEl, `Descargando voz Kokoro... ${Math.round(p.progress)}%`);
           }
         },
       });
     }, {
-      onRetry: (attempt, total)=>{ if(statusEl) statusEl.textContent = `Se cortó la descarga, reintentando (${attempt}/${total-1})…`; }
+      onRetry: (attempt, total)=>{ setStatus(statusEl, `Se cortó la descarga, reintentando (${attempt}/${total-1})…`); }
     });
-    if(statusEl){ statusEl.textContent = 'Voz Kokoro cargada y lista ✓'; statusEl.className = 'status-line ok'; }
-    // DIAGNÓSTICO: mostramos en la consola qué voces trae realmente esta versión del modelo —
-    // así confirmamos si "af_heart" existe de verdad con ese nombre exacto, en vez de asumirlo.
+    setStatus(statusEl, 'Voz Kokoro cargada y lista ✓', 'ok');
+    // Diagnóstico: deja registrada en consola la lista real de voces de este modelo, útil si
+    // algún día la librería cambia de versión y algún voice ID deja de existir (ver bug #20).
     try{
       const voices = typeof kokoroTTS.list_voices === 'function' ? kokoroTTS.list_voices() : (kokoroTTS.voices || null);
       console.log('[Kokoro] Voces disponibles en este modelo:', voices);
     }catch(e){ console.warn('[Kokoro] No pude listar las voces disponibles', e); }
   }catch(e){
     console.error('No se pudo cargar Kokoro', e);
-    if(statusEl){ statusEl.textContent = 'No se pudo cargar la voz Kokoro: ' + (e?.message || e); statusEl.className = 'status-line err'; }
+    setStatus(statusEl, 'No se pudo cargar la voz Kokoro: ' + (e?.message || e), 'err');
     kokoroTTS = null;
   }
   kokoroLoading = false;
@@ -1721,8 +1794,7 @@ async function speakWithKokoro(text, onEnd){
     await audioEl.play();
   }catch(e){
     console.error('[Kokoro] Error generando voz', e);
-    const statusEl = document.getElementById('kokoroStatus');
-    if(statusEl){ statusEl.textContent = 'Error generando audio con Kokoro: ' + (e?.message || e) + ' (mirá la consola para más detalle)'; statusEl.className = 'status-line err'; }
+    setStatus(document.getElementById('kokoroStatus'), 'Error generando audio con Kokoro: ' + (e?.message || e) + ' (mirá la consola para más detalle)', 'err');
     if(onEnd) onEnd();
   }
 }
@@ -2055,9 +2127,10 @@ let liveRecordStartAt = 0;
 let liveCalibSamples = [];
 let liveThreshold = null;
 
-const LIVE_SILENCE_MS = 1100;
-const LIVE_CALIB_MS = 300;
-const LIVE_MAX_RECORD_MS = 20000;
+// Parámetros del algoritmo de detección de voz por volumen (VAD, ver vadLoop más abajo):
+const LIVE_SILENCE_MS = 1100;    // cuánto silencio hace falta después de hablar para dar el turno por terminado
+const LIVE_CALIB_MS = 300;       // cuánto tiempo, al arrancar a grabar, se usa solo para medir el ruido de fondo (sin decidir nada todavía)
+const LIVE_MAX_RECORD_MS = 20000; // tope de seguridad: si habla sin parar, se corta igual a los 20s
 
 function setLiveModeUI(active){
   const btn = document.getElementById('liveModeBtn');
@@ -2283,6 +2356,17 @@ async function startLiveListening(){
 }
 
 // Escucha el volumen del micrófono para saber cuándo empezaste y cuándo dejaste de hablar (en vez de confiar en el navegador)
+// Algoritmo de detección de voz por volumen (VAD), corrido en un loop de requestAnimationFrame
+// mientras se está grabando en la charla en vivo. En resumen, en tres fases:
+//   1. CALIBRACIÓN (primeros LIVE_CALIB_MS): no decide nada, solo junta muestras de volumen para
+//      saber cuánto "ruido de fondo" hay en ese momento — un mismo umbral fijo no serviría igual
+//      en un cuarto silencioso que con ruido de calle de fondo.
+//   2. Con esas muestras, calcula un umbral DINÁMICO (liveThreshold) por única vez: un poco por
+//      encima del ruido de fondo medido, con un piso mínimo (0.02) para no ser demasiado sensible.
+//   3. Mientras el volumen supera ese umbral, se considera que "está hablando" y se anota el
+//      momento del último sonido fuerte (liveLastLoudAt). El turno se da por terminado cuando pasó
+//      suficiente silencio DESPUÉS de haber empezado a hablar (LIVE_SILENCE_MS), o al llegar al
+//      tope de seguridad (LIVE_MAX_RECORD_MS) — lo que pase primero.
 function vadLoop(){
   if(!isListening || !liveAnalyser) return;
   const vol = currentVolume();
@@ -2593,22 +2677,59 @@ ${profile ? `Datos del estudiante (usalos para elegir mejor el enfoque del ejerc
 Siempre debe tener exactamente 4 opciones, aunque el ejercicio sea de transformación (formulalo como opción múltiple igual).`;
 }
 
-async function loadGrammarQuestion(){
-  const area = document.getElementById('grammarQuizArea');
-  const loading = document.getElementById('grammarLoading');
-  const btn = document.getElementById('newGrammarQ');
+// Patrón común a "generar un ejercicio nuevo": deshabilita el botón, muestra el loading, le pide
+// algo a la IA, lo parsea como JSON y lo renderiza — Gramática y Lectura tenían esta misma
+// secuencia escrita a mano, dos veces, con solo los IDs y el prompt cambiados.
+async function generateExercise({ btnId, loadingId, areaId, systemPrompt, userMessage, maxTokens, render, errorText }){
+  const btn = document.getElementById(btnId);
+  const loading = document.getElementById(loadingId);
+  const area = document.getElementById(areaId);
   btn.disabled = true;
   loading.style.display = 'flex';
   area.innerHTML = '';
   try{
-    const raw = await callClaude(grammarSystemPrompt(), [{role:"user", content:"Generá el ejercicio."}], 1200, true);
-    const q = parseJsonLoose(raw);
-    renderGrammarQuestion(q);
+    const raw = await callClaude(systemPrompt, [{role:"user", content:userMessage}], maxTokens, true);
+    render(parseJsonLoose(raw));
   }catch(e){
-    area.innerHTML = '<p class="hint">Error generando el ejercicio. Probá de nuevo.</p>';
+    area.innerHTML = `<p class="hint">${errorText}</p>`;
   }
   loading.style.display = 'none';
   btn.disabled = false;
+}
+
+async function loadGrammarQuestion(){
+  await generateExercise({
+    btnId: 'newGrammarQ', loadingId: 'grammarLoading', areaId: 'grammarQuizArea',
+    systemPrompt: grammarSystemPrompt(), userMessage: 'Generá el ejercicio.', maxTokens: 1200,
+    render: renderGrammarQuestion, errorText: 'Error generando el ejercicio. Probá de nuevo.'
+  });
+}
+
+// Crea los botones de una pregunta de opción múltiple y maneja el click (marca correcto/incorrecto,
+// arma la explicación) — antes esta misma lógica estaba duplicada casi palabra por palabra entre
+// Gramática y Lectura; ahora ambas llaman a esto y solo definen qué hacer con el resultado.
+function renderMultipleChoiceOptions(q, onAnswered){
+  const optsDiv = document.createElement('div');
+  optsDiv.className = 'options';
+  q.options.forEach(opt=>{
+    const b = document.createElement('button');
+    b.className = 'opt-btn';
+    b.textContent = toDisplayText(opt);
+    b.addEventListener('click', ()=>{
+      optsDiv.querySelectorAll('.opt-btn').forEach(o=>o.disabled = true);
+      const correct = toDisplayText(opt) === toDisplayText(q.answer);
+      b.classList.add(correct ? 'correct' : 'incorrect');
+      if(!correct){
+        optsDiv.querySelectorAll('.opt-btn').forEach(o=>{ if(o.textContent === toDisplayText(q.answer)) o.classList.add('correct'); });
+      }
+      const expl = document.createElement('div');
+      expl.className = 'explanation';
+      expl.textContent = toDisplayText(q.explanation);
+      onAnswered(correct, expl);
+    });
+    optsDiv.appendChild(b);
+  });
+  return optsDiv;
 }
 
 function renderGrammarQuestion(q){
@@ -2619,38 +2740,21 @@ function renderGrammarQuestion(q){
   qDiv.textContent = toDisplayText(q.question);
   area.appendChild(qDiv);
 
-  const optsDiv = document.createElement('div');
-  optsDiv.className = 'options';
-  q.options.forEach(opt=>{
-    const b = document.createElement('button');
-    b.className = 'opt-btn';
-    b.textContent = toDisplayText(opt);
-    b.addEventListener('click', ()=>{
-      document.querySelectorAll('.opt-btn').forEach(o=>o.disabled = true);
-      const correct = toDisplayText(opt) === toDisplayText(q.answer);
-      b.classList.add(correct ? 'correct' : 'incorrect');
-      if(!correct){
-        document.querySelectorAll('.opt-btn').forEach(o=>{ if(o.textContent === toDisplayText(q.answer)) o.classList.add('correct'); });
-      }
-      progress.grammar.total++;
-      if(correct){ progress.grammar.correct++; buddyCelebrate('grammar'); }
-      else { recordMistakeCategory(q.topic); }
-      document.getElementById('grammarScore').textContent = `${progress.grammar.correct} / ${progress.grammar.total} correctas`;
-      saveProgress();
-      const expl = document.createElement('div');
-      expl.className = 'explanation';
-      expl.textContent = toDisplayText(q.explanation);
-      if(q.example){
-        const ex = document.createElement('div');
-        ex.style.marginTop = '8px';
-        ex.style.color = 'var(--gold-300)';
-        ex.style.fontStyle = 'italic';
-        ex.textContent = '✎ ' + toDisplayText(q.example);
-        expl.appendChild(ex);
-      }
-      area.appendChild(expl);
-    });
-    optsDiv.appendChild(b);
+  const optsDiv = renderMultipleChoiceOptions(q, (correct, expl)=>{
+    progress.grammar.total++;
+    if(correct){ progress.grammar.correct++; buddyCelebrate('grammar'); }
+    else { recordMistakeCategory(q.topic); }
+    document.getElementById('grammarScore').textContent = `${progress.grammar.correct} / ${progress.grammar.total} correctas`;
+    saveProgress();
+    if(q.example){
+      const ex = document.createElement('div');
+      ex.style.marginTop = '8px';
+      ex.style.color = 'var(--gold-300)';
+      ex.style.fontStyle = 'italic';
+      ex.textContent = '✎ ' + toDisplayText(q.example);
+      expl.appendChild(ex);
+    }
+    area.appendChild(expl);
   });
   area.appendChild(optsDiv);
 }
@@ -2793,21 +2897,11 @@ Deben ser exactamente 3 preguntas, cada una con 4 opciones.`;
 }
 
 async function loadReading(){
-  const btn = document.getElementById('newReading');
-  const loading = document.getElementById('readingLoading');
-  const area = document.getElementById('readingArea');
-  btn.disabled = true;
-  loading.style.display = 'flex';
-  area.innerHTML = '';
-  try{
-    const raw = await callClaude(readingSystemPrompt(), [{role:"user", content:"Generá el texto y las preguntas."}], 2000, true);
-    const data = parseJsonLoose(raw);
-    renderReading(data);
-  }catch(e){
-    area.innerHTML = '<p class="hint">Error generando la lectura. Probá de nuevo.</p>';
-  }
-  loading.style.display = 'none';
-  btn.disabled = false;
+  await generateExercise({
+    btnId: 'newReading', loadingId: 'readingLoading', areaId: 'readingArea',
+    systemPrompt: readingSystemPrompt(), userMessage: 'Generá el texto y las preguntas.', maxTokens: 2000,
+    render: renderReading, errorText: 'Error generando la lectura. Probá de nuevo.'
+  });
 }
 
 function renderReading(data){
@@ -2829,28 +2923,12 @@ function renderReading(data){
     qDiv.style.fontSize = '14.5px';
     qDiv.textContent = (qi+1) + '. ' + toDisplayText(q.question);
     qWrap.appendChild(qDiv);
-    const optsDiv = document.createElement('div');
-    optsDiv.className = 'options';
-    q.options.forEach(opt=>{
-      const b = document.createElement('button');
-      b.className = 'opt-btn';
-      b.textContent = toDisplayText(opt);
-      b.addEventListener('click', ()=>{
-        optsDiv.querySelectorAll('.opt-btn').forEach(o=>o.disabled = true);
-        const correct = toDisplayText(opt) === toDisplayText(q.answer);
-        b.classList.add(correct ? 'correct' : 'incorrect');
-        if(!correct){
-          optsDiv.querySelectorAll('.opt-btn').forEach(o=>{ if(o.textContent === toDisplayText(q.answer)) o.classList.add('correct'); });
-        }
-        progress.reading.total++;
-        if(correct){ progress.reading.correct++; buddyCelebrate('reading'); }
-        saveProgress();
-        const expl = document.createElement('div');
-        expl.className = 'explanation';
-        expl.textContent = toDisplayText(q.explanation);
-        qWrap.appendChild(expl);
-      });
-      optsDiv.appendChild(b);
+
+    const optsDiv = renderMultipleChoiceOptions(q, (correct, expl)=>{
+      progress.reading.total++;
+      if(correct){ progress.reading.correct++; buddyCelebrate('reading'); }
+      saveProgress();
+      qWrap.appendChild(expl);
     });
     qWrap.appendChild(optsDiv);
     area.appendChild(qWrap);
@@ -2870,6 +2948,7 @@ const bubbleTextEl = document.getElementById('buddyBubbleText');
 const buddyActionsDiv = bubbleEl.querySelector('.bubble-actions');
 const buddyActionBtn = document.getElementById('buddyAction');
 
+// ---------- Estado y datos del asistente (variables, tips fijos, easter eggs) ----------
 let buddyMuted = false;
 let buddySnoozeUntil = 0;
 let buddyLastActivity = Date.now();
@@ -2969,6 +3048,17 @@ const BUDDY_TIPS = {
     "¿Seguís por ahí? Elegí una pestaña y arrancamos con algo cortito.",
     "Cuando quieras retomamos — estoy acá si necesitás una mano.",
     "¿Todo bien? Puedo ayudarte a arrancar algo nuevo si querés practicar."
+  ],
+  // Tips sobre cómo usar/configurar la app en sí — se mezclan de vez en cuando entre los tips
+  // normales, tanto cuando estoy aburrido como cuando me sacudís.
+  config: [
+    "¿Sabías que podés elegir entre varios proveedores de IA gratis (Groq, Cerebras, OpenRouter)? Los configurás en ⚙️ Configuración, con tu propia API key.",
+    "Si no querés usar ninguna key, hay una IA local descargable que corre directo en tu navegador — anda sin internet después de la primera descarga. La encontrás en ⚙️ Configuración → Local.",
+    "¿Viste el botón 🎛️ al lado de 'Charla en vivo'? Ahí podés cambiar el acento, el tono y la velocidad de mi voz, y guardarlo como perfil.",
+    "Si tu compu no tiene voces en inglés instaladas, en 🎛️ hay una voz local descargable (Kokoro) que no depende de lo que tenga tu sistema — se baja una sola vez.",
+    "En 🎛️ también podés probar la voz antes de guardarla, con el botón '▶ Probar voz' — así no elegís a ciegas.",
+    "¿Sabías que podés hacer que arranque YO la conversación en vez de vos? Hay un check arriba de todo en Conversación para eso.",
+    "En ⚙️ Configuración también podés compartir la app con otro celular escaneando un código QR — te lo muestro yo mismo si me lo pedís desde ahí."
   ]
 };
 
@@ -3010,6 +3100,7 @@ const BUDDY_FLAVOR = [
   "Moe atiende su taberna con paciencia todos los días — la práctica constante rinde igual acá."
 ];
 
+// ---------- Dibujo y expresiones del asistente (Canvas2D) ----------
 function buddyCelebrate(tab, variant){
   if(buddyMuted || buddyDragging) return;
   const key = variant || tab;
@@ -3202,6 +3293,7 @@ function currentTabKey(){
   return active ? active.dataset.tab : 'conversation';
 }
 
+// ---------- Posición, traslados y arrastre del asistente ----------
 function applyBuddyCorner(key){
   buddyEl.style.transition = '';
   Object.assign(buddyEl.style, BUDDY_CORNERS[key]);
@@ -3353,8 +3445,11 @@ function scheduleReadingExit(){
   buddyReadingExitTimer = setTimeout(exitReadingMode, 2600);
 }
 
-const BUDDY_READ_FAR = 380, BUDDY_READ_NEAR = 130;
+const BUDDY_READ_FAR = 380, BUDDY_READ_NEAR = 130; // distancias en píxeles: los umbrales que separan las 3 categorías de abajo
 
+// Mide qué tan lejos está el asistente del campo que el usuario está escribiendo (distancia entre
+// los dos centros, en línea recta) y lo clasifica en 3 categorías, que applyReadingCategory() usa
+// para decidir si se pone anteojos y lee desde lejos, se acerca a leer, o ya está lo bastante cerca:
 function categorizeReadingDistance(el){
   const rect = el.getBoundingClientRect();
   const bRect = buddyEl.getBoundingClientRect();
@@ -3425,6 +3520,7 @@ function clampBuddyPosition(){
   buddyEl.style.bottom = 'auto';
 }
 
+// ---------- Globo de diálogo: posicionamiento, tips, easter eggs y sugerencias de conversación ----------
 function positionBubbleNearBuddy(){
   const rect = buddyEl.getBoundingClientRect();
   bubbleEl.classList.remove('arrow-left','arrow-right','arrow-up','arrow-down');
@@ -3639,6 +3735,12 @@ async function showBuddyTip(force){
   } else {
     const pool = (BUDDY_TIPS[tab] && BUDDY_TIPS[tab].length) ? BUDDY_TIPS[tab] : BUDDY_TIPS.idle;
     tips = shuffledPick(pool, Math.min(3, pool.length));
+  }
+  // De vez en cuando, mezclamos un tip sobre cómo configurar la app (APIs, voz, Kokoro, etc.)
+  // entre los tips normales — así se descubren esas opciones sin que sea siempre lo mismo.
+  if(Math.random() < 0.35 && BUDDY_TIPS.config && BUDDY_TIPS.config.length){
+    const configTip = BUDDY_TIPS.config[Math.floor(Math.random()*BUDDY_TIPS.config.length)];
+    tips.splice(Math.floor(Math.random()*(tips.length+1)), 0, configTip);
   }
   // si mientras esperábamos la IA el usuario volvió a la actividad, no interrumpir
   if(buddyIsBusy() || buddyMuted || Date.now() < buddySnoozeUntil || (!force && (buddyDragging || Date.now()-buddyLastActivity < 3000))){
@@ -3924,6 +4026,7 @@ buddyEl.addEventListener('touchstart', startBuddyDrag, {passive:false});
 
 // Pequeños gestos sueltos (saltito o giro, sin cambiar de lugar) cuando lleva un rato quieto —
 // además de los tips, los easter eggs y los traslados que ya tenía.
+// ---------- Gestos sueltos (saltito/giro), sin cambiar de lugar, cuando lleva un rato quieto ----------
 let buddyLastFidgetAt = 0;
 function playBuddyIdleFidget(){
   if(buddyReadingMode || buddyDragging || buddyBubbleVisible || buddyMuted) return;
