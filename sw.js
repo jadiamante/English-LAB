@@ -4,17 +4,20 @@
 // repetidas y siga disponible (la interfaz, no la IA en la nube) sin conexión.
 // ============================================================
 
-const CACHE_NAME = 'english-lab-v1';
+const CACHE_NAME = 'english-lab-v2'; // subido de v1 a v2: se corrigió qué se precachea (ver más abajo), fuerza a los navegadores que ya tenían la v1 a limpiar el caché viejo
 const APP_SHELL = [
-  './',
-  './english-lab.html'
+  './english-lab.html', // el archivo real de la app — antes decía './index.html', que no existe con ese nombre en este proyecto
+  './ai-worker.js',      // crítico para que la IA local/transcriptor/Kokoro funcionen sin conexión
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .catch(() => {}) // si algún recurso no existe con ese nombre, no rompe la instalación
+    caches.open(CACHE_NAME).then((cache) =>
+      // Se cachea cada URL POR SEPARADO (no con cache.addAll(), que es todo-o-nada: si UN
+      // recurso de la lista falla, no cachea NINGUNO). Así, si algún día se agrega otro archivo
+      // a esta lista y falla por lo que sea, el resto se sigue cacheando bien igual.
+      Promise.all(APP_SHELL.map((url) => cache.add(url).catch(() => {})))
+    )
   );
   self.skipWaiting();
 });

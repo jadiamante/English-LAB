@@ -64,6 +64,7 @@ self.onmessage = async (e) => {
   try{
     let result;
 
+    // ---------- Modelo de texto local (Qwen2.5-0.5B) ----------
     if(type === 'load-text-model'){
       const { pipeline } = await loadTransformersLib();
       textGenerator = await pipeline('text-generation', LOCAL_MODEL_ID, {
@@ -78,6 +79,7 @@ self.onmessage = async (e) => {
       const last = output[0] && output[0].generated_text && output[0].generated_text.at(-1);
       result = { text: (last && last.content) || '' };
 
+    // ---------- Transcriptor de voz local (Whisper tiny) ----------
     } else if(type === 'load-asr'){
       const { pipeline } = await loadTransformersLib();
       asrModel = await pipeline('automatic-speech-recognition', LOCAL_ASR_MODEL_ID, {
@@ -93,6 +95,7 @@ self.onmessage = async (e) => {
       const out = await asrModel(audioData, { language: 'english', task: 'transcribe' });
       result = { text: ((out && out.text) || '').trim() };
 
+    // ---------- Voz local Kokoro (síntesis de voz) ----------
     } else if(type === 'load-kokoro'){
       const { KokoroTTS } = await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.0.1');
       kokoroTTS = await KokoroTTS.from_pretrained(KOKORO_MODEL_ID, {

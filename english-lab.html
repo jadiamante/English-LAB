@@ -305,6 +305,20 @@
   .row > input[type=text]{margin-bottom:0;} /* cuando el input va directo en la fila (no en un div envoltorio), que no se desalinee con el botón de al lado */
   .row > div{flex:1;min-width:180px;}
 
+  /* Fila Contexto + Reiniciar conversación: CSS Grid en vez de flexbox — con Grid las dos
+     columnas quedan garantizadas en la misma fila y a la misma altura por definición de la
+     grilla, sin depender de que el contenido "adivine" bien cuánto ancho pedir (que es lo que
+     hacía que a veces el botón se fuera a su propia línea, viéndose descolocado). */
+  /* Contexto + Reiniciar conversación, en una sola columna — se probó alineado al costado (5
+     intentos, con problemas de alto real distinto entre <select> y <button> según el navegador)
+     y no terminaba de cuajar en todos lados. Apilado es más simple, más robusto, y de yapa queda
+     igual que ya se ve en mobile — sin caso especial de desktop. */
+  .context-reset-stack{margin-bottom:14px;}
+  .context-reset-stack #resetConv{margin-top:10px;width:auto;}
+  @media (max-width:720px){
+    .context-reset-stack #resetConv{width:100%;}
+  }
+
   .loading{color:var(--gold-300);font-size:13px;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:8px;}
   .dot{width:6px;height:6px;border-radius:50%;background:var(--gold-500);animation:pulse 1s infinite ease-in-out;}
   @keyframes pulse{0%,100%{opacity:.3;}50%{opacity:1;}}
@@ -355,7 +369,6 @@
     cursor:pointer;user-select:none;
   }
   .voice-toggle input{width:auto;margin:0;}
-  .btn-pair{display:flex;gap:10px;}
   .engine-pair{display:flex;gap:10px;}
   .engine-card{
     flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;
@@ -589,6 +602,41 @@
     display:flex; align-items:center; justify-content:center; gap:8px;
     font-family:'IBM Plex Mono',monospace;
   }
+  .cancel-hint{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:150;
+    background:var(--navy-700); border:1px solid var(--error); border-radius:10px;
+    padding:10px 14px; font-size:12.5px; color:var(--cream);
+    display:flex; align-items:center; gap:12px; box-shadow:0 8px 20px rgba(0,0,0,0.4);
+    max-width:calc(100vw - 32px);
+  }
+  .cancel-hint button{
+    background:var(--error); color:#fff; border:none; border-radius:6px;
+    padding:6px 12px; font-size:12px; cursor:pointer; flex:none;
+  }
+
+  /* ---------- Coach marks: iluminan un elemento REAL de la interfaz (nunca lo tocan por el
+     usuario) — el truco del box-shadow con spread enorme oscurece toda la pantalla EXCEPTO el
+     elemento en foco, sin necesitar un overlay recortado aparte. ---------- */
+  .tour-overlay{position:fixed;inset:0;z-index:140;background:transparent;cursor:pointer;}
+  .tour-spotlight{
+    position:relative!important; z-index:141;
+    border-radius:8px;
+    animation:tourPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes tourPulse{
+    0%,100%{ box-shadow:0 0 0 5px var(--gold-500), 0 0 0 9999px rgba(10,14,20,0.72); }
+    50%{ box-shadow:0 0 0 9px rgba(212,169,74,0.55), 0 0 0 9999px rgba(10,14,20,0.72); }
+  }
+  .tour-caption{
+    position:fixed; z-index:142; background:var(--navy-800); border:1px solid var(--gold-500);
+    border-radius:10px; padding:12px 14px; box-shadow:0 10px 24px rgba(0,0,0,0.5);
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .tour-caption-text{margin:0;font-size:13px;color:var(--cream);line-height:1.5;}
+  .tour-caption button{
+    align-self:flex-end; background:none; border:none; color:var(--muted);
+    font-size:11.5px; cursor:pointer; text-decoration:underline; padding:2px;
+  }
 
   /* ---- Responsive: tablets y celulares ---- */
   @media (max-width: 720px){
@@ -612,8 +660,8 @@
     /* Filas: apiladas y a todo el ancho, en vez de amontonarse en varias líneas cortas */
     .row{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-bottom:16px;}
     .row > div, .row select, .row input[type=text]{width:100%;}
-    .btn-pair, .btn-pair-live{flex-direction:row;gap:8px;}
-    .btn-pair button, .btn-pair-live #liveModeBtn{flex:1;min-width:0;}
+    .btn-pair-live{flex-direction:row;gap:8px;}
+    .btn-pair-live #liveModeBtn{flex:1;min-width:0;}
 
     /* Botones: objetivo táctil más grande y cómodo (mínimo recomendado ~44-48px) */
     button.primary, button.secondary{padding:13px 14px;font-size:13.5px;min-height:46px;}
@@ -647,7 +695,7 @@
   @media (max-width: 420px){
     h1{font-size:21px;}
     .tab-btn{font-size:11.5px;padding:11px 10px;}
-    .btn-pair, .btn-pair-live{flex-direction:column;}
+    .btn-pair-live{flex-direction:column;}
     .btn-pair-live #voiceConfigBtn{width:100%;}
     .options .opt-btn{font-size:13px;padding:11px 12px;}
   }
@@ -664,6 +712,15 @@
 </head>
 <body>
 <div id="offlineBanner" class="offline-banner" style="display:none;"></div>
+<div id="tourOverlay" class="tour-overlay" style="display:none;"></div>
+<div id="tourCaption" class="tour-caption" style="display:none;">
+  <p class="tour-caption-text"></p>
+  <button id="tourSkipBtn" type="button">✕ Saltar</button>
+</div>
+<div id="aiWorkerCancelHint" class="cancel-hint" style="display:none;">
+  <span>⏳ Esto está tardando más de lo normal…</span>
+  <button id="cancelAIWorkerBtn" type="button" data-tooltip="Corta la operación en curso, aunque no haya terminado">⏹ Cancelar</button>
+</div>
 <div class="wrap">
 
   <header>
@@ -710,21 +767,17 @@
     <div class="card">
       <h2>Práctica oral / conversacional</h2>
       <p class="hint">Elegí un contexto y conversá en inglés. Si cometés un error notable, la IA te lo va a señalar debajo de su respuesta.</p>
-      <div class="row">
-        <div>
-          <label class="field-label">CONTEXTO</label>
-          <select id="convContext">
-            <option value="exam">Entrevista de examen oral (formal)</option>
-            <option value="meeting">Reunión de trabajo (general)</option>
-            <option value="colleague">Conversación con un colega</option>
-            <option value="client">Llamada con un cliente</option>
-            <option value="technical">Tema técnico o especializado de tu área</option>
-            <option value="daily">Vida cotidiana (viajes, compras, charla informal)</option>
-          </select>
-        </div>
-        <div class="btn-pair">
-          <button class="secondary" id="resetConv" data-tooltip="Borra la charla actual y empieza una nueva">Reiniciar conversación</button>
-        </div>
+      <div class="context-reset-stack">
+        <label class="field-label">CONTEXTO</label>
+        <select id="convContext">
+          <option value="exam">Entrevista de examen oral (formal)</option>
+          <option value="meeting">Reunión de trabajo (general)</option>
+          <option value="colleague">Conversación con un colega</option>
+          <option value="client">Llamada con un cliente</option>
+          <option value="technical">Tema técnico o especializado de tu área</option>
+          <option value="daily">Vida cotidiana (viajes, compras, charla informal)</option>
+        </select>
+        <button class="secondary" id="resetConv" data-tooltip="Borra la charla actual y empieza una nueva">Reiniciar conversación</button>
       </div>
       <label class="voice-toggle" style="margin-bottom:16px;">
         <input type="checkbox" id="aiStartsToggle">
@@ -1045,6 +1098,8 @@
  *  1. IA: proveedores, modelo local, servidor avanzado, enrutador (callClaude)
  *     "Configuración de proveedores de IA" / "Modelo local en el navegador"
  *     "Detección de servidor local avanzado" / "Llamada a la IA"
+ *     (la inferencia pesada del modelo local, el transcriptor y Kokoro
+ *     corren en ai-worker.js — un Web Worker aparte, ver "Worker de IA local")
  *  2. Storage, progreso y perfil de aprendizaje
  *     "Storage con fallback" / "Progress storage" / "Perfil de aprendizaje"
  *  3. Tabs y navegación entre secciones — "Tabs"
@@ -1056,13 +1111,21 @@
  *  6. TAB 2: Gramática — "TAB 2: GRAMMAR"
  *  7. TAB 3: Writing — "TAB 3: WRITING"
  *  8. TAB 4: Lectura — "TAB 4: READING"
- *  9. El asistente (buddy): estado, dibujo, movimiento, globo de diálogo,
- *     modo lectura, sacudida, gestos sueltos — todo bajo "BUDDY: asistente
- *     pixel-art", con sub-secciones marcadas adentro
- * 10. Conexión a internet y modo offline — "Conexión a internet"
- * 11. Service Worker — "Service Worker"
- * 12. Código QR para compartir la app — "Código QR para compartir la app"
- * 13. Inicialización de la app — "init"
+ *  9. TAB 5: Traducción ES↔EN, texto y subtítulos — oculta hasta activarla
+ *     en Configuración → Avanzadas — "TAB 5: TRADUCCIÓN"
+ * 10. El asistente (buddy): estado, dibujo, movimiento, globo de diálogo,
+ *     modo lectura, sacudida, gestos sueltos, coach marks — todo bajo
+ *     "BUDDY: asistente pixel-art", con sub-secciones marcadas adentro
+ * 11. Tooltips (globito flotante en botones) — "TOOLTIPS: arma el globito"
+ * 12. Worker de IA local: puente de mensajes + botón de cancelar una
+ *     operación trabada — "Worker de IA local" (el código pesado en sí
+ *     vive en el archivo aparte ai-worker.js, que hay que subir junto a
+ *     este HTML — sin ese archivo, el modelo local/transcriptor/Kokoro
+ *     no funcionan)
+ * 13. Conexión a internet y modo offline — "Conexión a internet"
+ * 14. Service Worker — "Service Worker"
+ * 15. Código QR para compartir la app — "Código QR para compartir la app"
+ * 16. Inicialización de la app — "init"
  * ============================================================================
  */
 
@@ -1132,6 +1195,7 @@ async function withRetries(fn, { attempts = 3, baseDelayMs = 1200, onRetry } = {
     try{ return await fn(i); }
     catch(e){
       lastError = e;
+      if(e && e.cancelled) throw e; // el usuario canceló a propósito — no tiene sentido reintentar solo
       if(i < attempts - 1){
         onRetry?.(i + 1, attempts, e);
         await new Promise(r => setTimeout(r, baseDelayMs * (i + 1)));
@@ -1156,6 +1220,7 @@ function getAIWorker(){
       if(!pending) return;
       if(type === 'progress'){ pending.onProgress?.(payload); return; }
       aiWorkerPending.delete(id);
+      if(aiWorkerPending.size === 0) hideCancelHint();
       if(type === 'error') pending.reject(new Error(payload.message));
       else pending.resolve(payload);
     };
@@ -1172,8 +1237,44 @@ function callAIWorker(type, payload, onProgress){
     aiWorkerPending.set(id, { resolve, reject, onProgress });
     const transferList = (payload && payload.audioBuffer instanceof ArrayBuffer) ? [payload.audioBuffer] : [];
     getAIWorker().postMessage({ id, type, payload }, transferList);
+    showCancelHintIfSlow();
   });
 }
+
+// Cancela lo que sea que esté haciendo el worker de IA local — lo mata y lo recrea de cero. Es la
+// garantía de que el usuario NUNCA quede sin salida, aunque el cálculo esté genuinamente lento (no
+// roto) en un dispositivo débil: siempre hay una forma de cortar y volver a intentar o cambiar a
+// un proveedor en la nube en su lugar.
+function cancelAIWorker(){
+  if(aiWorker){ aiWorker.terminate(); aiWorker = null; }
+  const err = new Error('Cancelado por el usuario.');
+  err.cancelled = true;
+  aiWorkerPending.forEach(p => p.reject(err));
+  aiWorkerPending.clear();
+  // El modelo que estaba cargado vivía DENTRO del worker que acabamos de matar — ya no existe,
+  // así que los tres flags de "listo" vuelven a null, van a tener que recargarse si hacen falta.
+  localGenerator = null;
+  localASR = null;
+  kokoroTTS = null;
+  hideCancelHint();
+}
+
+// Si una operación del worker tarda más de 4 segundos, aparece un botón para cortarla — no se
+// muestra siempre (molestaría en cargas normales), solo cuando de verdad se está demorando.
+let cancelHintTimer = null;
+function showCancelHintIfSlow(){
+  clearTimeout(cancelHintTimer);
+  cancelHintTimer = setTimeout(()=>{
+    if(aiWorkerPending.size > 0) document.getElementById('aiWorkerCancelHint').style.display = 'flex';
+  }, 4000);
+}
+function hideCancelHint(){
+  clearTimeout(cancelHintTimer);
+  const el = document.getElementById('aiWorkerCancelHint');
+  if(el) el.style.display = 'none';
+}
+// Cuando termina la última operación pendiente (resuelta o rechazada), se oculta sola — se
+// chequea directo en el manejador de mensajes de abajo (ver aiWorkerPending.delete ahí).
 
 // ---------- "Gate" de capacidad del dispositivo, ANTES de intentar cargar un modelo pesado ----------
 // Cargar cientos de MB de modelo y correr inferencia en un celular con poca RAM es lo que más
@@ -1438,8 +1539,7 @@ function openApiModal(){
   document.getElementById('advancedModelInput').value = AI_SETTINGS.advanced.model || PROVIDER_DEFAULTS.advanced.model;
   document.getElementById('advancedKeyInput').value = AI_SETTINGS.advanced.key;
   const localStatusEl = document.getElementById('localStatus');
-  localStatusEl.textContent = localGenerator ? 'Modelo cargado y listo ✓' : '';
-  localStatusEl.className = localGenerator ? 'status-line ok' : 'status-line';
+  setStatus(localStatusEl, localGenerator ? 'Modelo cargado y listo ✓' : '', localGenerator ? 'ok' : '');
   const advStatusEl = document.getElementById('advancedStatus');
   setStatus(advStatusEl, '');
   document.getElementById('shakeDetectionToggle').checked = (shakeDetectionPref !== false);
@@ -1956,23 +2056,28 @@ async function loadKokoroTTS(){
 }
 
 async function speakWithKokoro(text, onEnd){
+  const t0 = Date.now();
   try{
     if(!kokoroTTS) await loadKokoroTTS();
     if(!kokoroTTS) throw new Error('La voz Kokoro no está cargada.');
     const voice = currentVoiceSettings.kokoroVoice || KOKORO_DEFAULT_VOICE;
     let speed = currentVoiceSettings.rate || 1;
     speed = Math.max(0.5, Math.min(2, speed)); // Kokoro no tolera valores tan extremos como rate del navegador
+    console.log('[Kokoro]', new Date().toISOString(), 'pidiendo generate() al worker…');
     const result = await callAIWorker('speak-kokoro', { text, voice, speed });
+    console.log('[Kokoro]', new Date().toISOString(), 'generate() del worker terminó en', Date.now()-t0, 'ms');
     const blob = wavBlobFromRawAudio({ audio: new Float32Array(result.audioBuffer), sampling_rate: result.samplingRate });
     if(currentKokoroAudio){ currentKokoroAudio.pause(); currentKokoroAudio.src = ''; }
     const url = URL.createObjectURL(blob);
     const audioEl = new Audio(url);
     currentKokoroAudio = audioEl;
-    audioEl.onended = ()=>{ URL.revokeObjectURL(url); if(onEnd) onEnd(); };
-    audioEl.onerror = ()=>{ URL.revokeObjectURL(url); if(onEnd) onEnd(); };
+    audioEl.onended = ()=>{ console.log('[Kokoro]', new Date().toISOString(), 'audio.onended disparado'); URL.revokeObjectURL(url); if(onEnd) onEnd(); };
+    audioEl.onerror = (ev)=>{ console.warn('[Kokoro]', new Date().toISOString(), 'audio.onerror', ev); URL.revokeObjectURL(url); if(onEnd) onEnd(); };
+    console.log('[Kokoro]', new Date().toISOString(), 'llamando a audioEl.play()…');
     await audioEl.play();
+    console.log('[Kokoro]', new Date().toISOString(), 'audioEl.play() resolvió (empezó a sonar)');
   }catch(e){
-    console.error('[Kokoro] Error generando voz', e);
+    console.error('[Kokoro]', new Date().toISOString(), 'Error generando voz', e);
     setStatus(document.getElementById('kokoroStatus'), 'Error generando audio con Kokoro: ' + (e?.message || e) + ' (mirá la consola para más detalle)', 'err');
     if(onEnd) onEnd();
   }
@@ -1999,13 +2104,36 @@ function wavBlobFromRawAudio(raw){
   return new Blob([buffer], { type: 'audio/wav' });
 }
 
+// Envuelve el callback de "terminé de hablar" con un tope de tiempo — si por lo que sea (bug del
+// navegador, audio que nunca dispara onended) el aviso natural nunca llega, se llama solo a los
+// 20s igual. Sin esto, toda la charla en vivo se queda esperando ese aviso para siempre si el
+// navegador no lo manda — coincide con lo reportado ("queda por siempre procesando").
+function withSpeechTimeout(onEnd, ms = 20000){
+  if(!onEnd) return null;
+  let done = false;
+  const timer = setTimeout(()=>{
+    if(done) return;
+    done = true;
+    console.warn('[Voz] El aviso de "terminé de hablar" nunca llegó — se fuerza después de', ms, 'ms');
+    onEnd();
+  }, ms);
+  return ()=>{
+    if(done) return;
+    done = true;
+    clearTimeout(timer);
+    onEnd();
+  };
+}
+
 function speakText(text, onEnd){
+  console.log('[Voz]', new Date().toISOString(), 'speakText() arranca — motor:', currentVoiceSettings.engine, '| texto:', text?.slice(0,60));
   if(!text){ if(onEnd) onEnd(); return; }
+  const safeOnEnd = withSpeechTimeout(onEnd);
   if(currentVoiceSettings.engine === 'kokoro'){
-    speakWithKokoro(text, onEnd);
+    speakWithKokoro(text, safeOnEnd);
     return;
   }
-  if(!window.speechSynthesis){ if(onEnd) onEnd(); return; }
+  if(!window.speechSynthesis){ if(safeOnEnd) safeOnEnd(); return; }
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   const chosenVoice = findVoiceByURI(currentVoiceSettings.voiceURI) || pickEnglishVoice();
@@ -2013,9 +2141,9 @@ function speakText(text, onEnd){
   if(chosenVoice) utter.voice = chosenVoice;
   utter.pitch = currentVoiceSettings.pitch;
   utter.rate = currentVoiceSettings.rate;
-  if(onEnd){
-    utter.onend = onEnd;
-    utter.onerror = onEnd;
+  if(safeOnEnd){
+    utter.onend = ()=>{ console.log('[Voz]', new Date().toISOString(), 'speechSynthesis.onend disparado'); safeOnEnd(); };
+    utter.onerror = (ev)=>{ console.warn('[Voz]', new Date().toISOString(), 'speechSynthesis.onerror', ev); safeOnEnd(); };
   }
   window.speechSynthesis.speak(utter);
 }
@@ -2680,8 +2808,11 @@ async function transcribeAndSend(blob){
   const input = document.getElementById('chatInput');
   const originalPlaceholder = input.placeholder;
   input.placeholder = liveUsingLocalSTT ? 'Transcribiendo localmente (puede tardar)…' : 'Transcribiendo tu audio…';
+  console.log('[Turno]', new Date().toISOString(), 'transcribeAndSend() arranca — local:', liveUsingLocalSTT, '| tamaño audio:', blob.size, 'bytes');
+  const t0 = Date.now();
   try{
     const text = await transcribeAudioTurn(blob);
+    console.log('[Turno]', new Date().toISOString(), 'transcripción terminó en', Date.now()-t0, 'ms — texto:', text);
     lastTurnWasVoice = true;
     input.placeholder = originalPlaceholder;
     if(text && text.length > 1){
@@ -2742,7 +2873,10 @@ async function sendChatMessage(){
   document.getElementById('sendChat').disabled = true;
   document.getElementById('convLoading').style.display = 'flex';
   try{
+    console.log('[Turno]', new Date().toISOString(), 'callClaude() arranca — proveedor:', AI_PROVIDER);
+    const _t0 = Date.now();
     const reply = await callClaude(convSystemPrompt(), convHistory, 1200);
+    console.log('[Turno]', new Date().toISOString(), 'callClaude() terminó en', Date.now()-_t0, 'ms');
     const parsed = parseConvReply(reply);
     appendMsg('ai', parsed.mainText, parsed.correction, parsed.better, parsed.incoherent, parsed.note, parsed.phoneticsIssue, parsed.phoneticsNote);
     if(liveMode){
@@ -3258,13 +3392,13 @@ const BUDDY_TIPS = {
   // Tips sobre cómo usar/configurar la app en sí — se mezclan de vez en cuando entre los tips
   // normales, tanto cuando estoy aburrido como cuando me sacudís.
   config: [
-    "¿Sabías que podés elegir entre varios proveedores de IA gratis (Groq, Cerebras, OpenRouter)? Los configurás en ⚙️ Configuración, con tu propia API key.",
+    { text: "¿Sabías que podés elegir entre varios proveedores de IA gratis (Groq, Cerebras, OpenRouter)? Te lo muestro.", tour: 'provider' },
     "Si no querés usar ninguna key, hay una IA local descargable que corre directo en tu navegador — anda sin internet después de la primera descarga. La encontrás en ⚙️ Configuración → Local.",
-    "¿Viste el botón 🎛️ al lado de 'Charla en vivo'? Ahí podés cambiar el acento, el tono y la velocidad de mi voz, y guardarlo como perfil.",
+    { text: "¿Viste que podés cambiar mi acento, tono y velocidad? Te muestro dónde.", tour: 'voice' },
     "Si tu compu no tiene voces en inglés instaladas, en 🎛️ hay una voz local descargable (Kokoro) que no depende de lo que tenga tu sistema — se baja una sola vez.",
     "En 🎛️ también podés probar la voz antes de guardarla, con el botón '▶ Probar voz' — así no elegís a ciegas.",
-    "¿Sabías que podés hacer que arranque YO la conversación en vez de vos? Hay un check arriba de todo en Conversación para eso.",
-    "En ⚙️ Configuración también podés compartir la app con otro celular escaneando un código QR — te lo muestro yo mismo si me lo pedís desde ahí."
+    { text: "¿Sabías que podés hacer que arranque YO la conversación en vez de vos? Te muestro dónde está eso.", tour: 'aiStarts' },
+    "En ⚙️ Configuración también podés compartir la app con otro celular con un código QR — lo genero yo mismo ahí adentro cuando lo pidas."
   ]
 };
 
@@ -3324,7 +3458,7 @@ function buddyCelebrate(tab, variant){
   buddyActionsDiv.style.display = 'flex';
   buddyBubbleVisible = true;
   buddyLastTipAt = Date.now();
-  requestAnimationFrame(alignBubbleArrow);
+  requestAnimationFrame(finalizeBubblePlacement);
 
   const style = Math.random();
   if(style < 0.34){
@@ -3731,10 +3865,16 @@ function positionBubbleNearBuddy(){
   const rect = buddyEl.getBoundingClientRect();
   bubbleEl.classList.remove('arrow-left','arrow-right','arrow-up','arrow-down');
 
+  // Si el globo ya está visible con contenido real (por ejemplo, se está reubicando después de
+  // que el QR terminó de dibujarse, mucho más alto que un tip corto), usamos su tamaño REAL en
+  // vez de un valor adivinado — antes se asumía siempre ~150px de alto, y cualquier contenido más
+  // grande que eso (el QR, un mensaje largo) quedaba cortado por la pantalla sin que el cálculo
+  // se enterara.
+  const hasRealSize = bubbleEl.classList.contains('show') && bubbleEl.offsetHeight > 0;
+
   if(isMobileDevice){
-    // En celular casi no hay lugar a los costados: el globo va arriba o abajo del asistente, usando casi todo el ancho
-    const bw = Math.min(300, window.innerWidth - 24);
-    const bubbleH = 150; // alto aproximado a reservar
+    const bw = hasRealSize ? bubbleEl.offsetWidth : Math.min(300, window.innerWidth - 24);
+    const bubbleH = hasRealSize ? bubbleEl.offsetHeight : 150;
     const gap = 14;
     const spaceAbove = rect.top;
     const spaceBelow = window.innerHeight - rect.bottom;
@@ -3745,26 +3885,36 @@ function positionBubbleNearBuddy(){
     let left = rect.left + rect.width/2 - bw/2;
     left = Math.max(12, Math.min(left, window.innerWidth - bw - 12));
     bubbleEl.style.left = left + 'px';
-    bubbleEl.style.top = top + 'px';
+    bubbleEl.style.top = Math.max(8, top) + 'px'; // por si el contenido real es TAN alto que ni arriba ni abajo entra entero, al menos no se corta por arriba
     bubbleEl.style.right = 'auto';
     bubbleEl.style.bottom = 'auto';
     bubbleEl.classList.add(side === 'top' ? 'arrow-down' : 'arrow-up');
     return;
   }
 
-  const bw = 240;
+  const bw = hasRealSize ? bubbleEl.offsetWidth : 240;
+  const bubbleH = hasRealSize ? bubbleEl.offsetHeight : 150;
   const gap = 16;
   const spaceLeft = rect.left;
   const spaceRight = window.innerWidth - rect.right;
   const side = spaceLeft >= bw + gap + 10 ? 'left' : (spaceRight >= bw + gap + 10 ? 'right' : (spaceLeft > spaceRight ? 'left' : 'right'));
   const left = side === 'left' ? (rect.left - bw - gap) : (rect.right + gap);
-  let top = rect.top + rect.height/2 - 55;
-  top = Math.max(10, Math.min(top, window.innerHeight - 150));
+  let top = rect.top + rect.height/2 - bubbleH/2;
+  top = Math.max(10, Math.min(top, window.innerHeight - bubbleH - 10));
   bubbleEl.style.left = Math.max(10, Math.min(left, window.innerWidth - bw - 10)) + 'px';
   bubbleEl.style.top = top + 'px';
   bubbleEl.style.right = 'auto';
   bubbleEl.style.bottom = 'auto';
   bubbleEl.classList.add(side === 'left' ? 'arrow-right' : 'arrow-left');
+}
+
+// Reubica el globo Y su flecha usando el tamaño REAL ya renderizado — hay que llamarla DESPUÉS de
+// que el contenido final (texto, QR, lo que sea) ya está puesto, nunca antes, porque recién ahí
+// el navegador sabe cuánto mide de verdad. Es el único punto que hay que llamar cuando el
+// contenido del globo puede ser mucho más grande que un tip corto (el QR es el caso típico).
+function finalizeBubblePlacement(){
+  positionBubbleNearBuddy();
+  requestAnimationFrame(alignBubbleArrow);
 }
 
 // Recalcula dónde tiene que apuntar la flecha del globo, según la posición REAL del asistente
@@ -3795,37 +3945,136 @@ function shuffledPick(pool, n){
   return arr.slice(0, n);
 }
 
-function renderBubbleStep(text, tab){
+// ---------- Coach marks: le señalan al usuario un elemento REAL de la interfaz, nunca hacen el
+// paso por él — investigado contra el patrón estándar de "spotlight tours" en diseño de producto:
+// atenuar el fondo, iluminar el elemento real, texto corto, y avanzar recién cuando el usuario
+// hace el clic de verdad (no con capturas de pantalla, que se desactualizan apenas cambia el diseño).
+const COACH_TOURS = {
+  provider: [{ selector: '#openApiModal', text: 'Tocá acá para elegir con qué IA conversás — hay opciones gratis (Groq, Cerebras, OpenRouter) y una que corre sin internet.' }],
+  voice:    [{ selector: '#voiceConfigBtn', text: 'Tocá acá para elegir tu voz, tono y velocidad, o activar la voz local Kokoro.', tab: 'conversation' }],
+  aiStarts: [{ selector: '#aiStartsToggle', text: 'Tildá este check si querés que sea la IA la que arranque la charla, en vez de esperar a que empieces vos.', tab: 'conversation' }],
+};
+
+let activeTour = null;
+let activeTourClickHandler = null;
+
+function startCoachTour(tourId){
+  const steps = COACH_TOURS[tourId];
+  if(!steps || !steps.length) return;
+  activeTour = { steps, index: 0 };
+  document.getElementById('tourOverlay').style.display = 'block';
+  showTourStep();
+}
+
+function showTourStep(){
+  const step = activeTour.steps[activeTour.index];
+  // Si el elemento vive en otra pestaña, cambiamos ahí primero — nunca se le apunta a algo oculto
+  if(step.tab){
+    const tabBtn = document.querySelector(`.tab-btn[data-tab="${step.tab}"]`);
+    if(tabBtn && !tabBtn.classList.contains('active')) tabBtn.click();
+  }
+  const el = document.querySelector(step.selector);
+  if(!el){ endCoachTour(); return; } // el elemento no está en pantalla ahora — mejor cortar que apuntar a la nada
+  el.classList.add('tour-spotlight');
+  el.scrollIntoView({ behavior:'smooth', block:'center', inline:'center' });
+  const caption = document.getElementById('tourCaption');
+  caption.querySelector('.tour-caption-text').textContent = step.text;
+  caption.style.display = 'flex';
+  requestAnimationFrame(()=> positionTourCaption(el));
+  activeTourClickHandler = ()=> setTimeout(advanceCoachTour, 350); // le da tiempo a que abra el modal/lo que corresponda
+  el.addEventListener('click', activeTourClickHandler, { once: true });
+}
+
+function positionTourCaption(el){
+  const caption = document.getElementById('tourCaption');
+  const rect = el.getBoundingClientRect();
+  const cw = Math.min(240, window.innerWidth - 24);
+  caption.style.width = cw + 'px';
+  let left = rect.left + rect.width/2 - cw/2;
+  left = Math.max(12, Math.min(left, window.innerWidth - cw - 12));
+  let top = rect.bottom + 16;
+  if(top + 90 > window.innerHeight) top = Math.max(12, rect.top - 96); // si no entra abajo, va arriba del elemento
+  caption.style.left = left + 'px';
+  caption.style.top = top + 'px';
+}
+
+function advanceCoachTour(){
+  if(!activeTour) return;
+  const step = activeTour.steps[activeTour.index];
+  const el = document.querySelector(step.selector);
+  if(el) el.classList.remove('tour-spotlight');
+  activeTour.index++;
+  if(activeTour.index >= activeTour.steps.length){ endCoachTour(); return; }
+  showTourStep();
+}
+
+function endCoachTour(){
+  if(activeTour){
+    const step = activeTour.steps[activeTour.index];
+    const el = step && document.querySelector(step.selector);
+    if(el){ el.classList.remove('tour-spotlight'); if(activeTourClickHandler) el.removeEventListener('click', activeTourClickHandler); }
+  }
+  activeTour = null;
+  activeTourClickHandler = null;
+  document.getElementById('tourOverlay').style.display = 'none';
+  document.getElementById('tourCaption').style.display = 'none';
+}
+document.getElementById('tourOverlay').addEventListener('click', endCoachTour);
+document.getElementById('tourSkipBtn').addEventListener('click', endCoachTour);
+window.addEventListener('resize', ()=>{
+  if(!activeTour) return;
+  const step = activeTour.steps[activeTour.index];
+  const el = document.querySelector(step.selector);
+  if(el) positionTourCaption(el);
+});
+
+function renderBubbleStep(item, tab){
+  const text = (typeof item === 'string') ? item : item.text;
+  const tourId = (item && typeof item === 'object') ? item.tour : null;
   bubbleTextEl.classList.remove('ok-pop');
   bubbleTextEl.textContent = text;
   buddyActionsDiv.style.display = 'flex';
-  const action = BUDDY_ACTIONS[tab];
-  if(action){
+  if(tourId && COACH_TOURS[tourId]){
+    // Este tip puntual tiene un tour real asociado — el botón le pisa al de la pestaña, porque
+    // acá sí hay algo concreto para mostrar (a diferencia de un tip común, que es solo texto).
     buddyActionBtn.style.display = 'inline-block';
-    buddyActionBtn.textContent = action.label;
+    buddyActionBtn.textContent = '👉 Mostrame';
     buddyActionBtn.onclick = (e)=>{
       e.stopPropagation();
       buddyLastActivity = Date.now();
-      if(action.animated){
-        clearInterval(buddyRotateTimer);
-        if(buddyTalkAnim){ clearInterval(buddyTalkAnim); buddyTalkAnim = null; }
-        action.fn();
-      } else {
-        hideBuddyBubble();
-        action.fn();
-      }
+      hideBuddyBubble();
+      startCoachTour(tourId);
     };
   } else {
-    buddyActionBtn.style.display = 'none';
+    const action = BUDDY_ACTIONS[tab];
+    if(action){
+      buddyActionBtn.style.display = 'inline-block';
+      buddyActionBtn.textContent = action.label;
+      buddyActionBtn.onclick = (e)=>{
+        e.stopPropagation();
+        buddyLastActivity = Date.now();
+        if(action.animated){
+          clearInterval(buddyRotateTimer);
+          if(buddyTalkAnim){ clearInterval(buddyTalkAnim); buddyTalkAnim = null; }
+          action.fn();
+        } else {
+          hideBuddyBubble();
+          action.fn();
+        }
+      };
+    } else {
+      buddyActionBtn.style.display = 'none';
+    }
   }
-  requestAnimationFrame(alignBubbleArrow);
+  requestAnimationFrame(finalizeBubblePlacement);
 }
 
 // Pide una pista contextual a la IA basada en la conversación real, para mezclar con tips genéricos
 async function generateContextualTip(){
   const recent = convHistory.slice(-6).map(m=>({role:m.role, content:m.content.split('\n')[0]}));
   const profile = buildProfileSummary();
-  const system = `Estás ayudando a alguien a practicar inglés conversacional. Mirá este fragmento de conversación en inglés y dale UNA sugerencia breve en español (máximo 2 oraciones) relacionada con el tema que se está hablando. Puede ser una idea de qué podría responder o agregar a continuación, un dato relacionado al tema, o un consejo de vocabulario puntual sobre eso — no siempre tiene que ser algo súper concreto, a veces alcanza con una idea general relacionada al tema. No repitas la conversación ni des una respuesta completa armada, solo una pista.${profile ? ` Datos de este estudiante, para dar una pista más útil cuando venga al caso: ${profile}` : ''}`;
+  const system = `Estás ayudando a alguien a practicar inglés conversacional. Mirá este fragmento de conversación en inglés y dale UNA sugerencia breve en español (máximo 2 oraciones) relacionada con el tema que se está hablando. Puede ser una idea de qué podría responder o agregar a continuación, un dato relacionado al tema, o un consejo de vocabulario puntual sobre eso — no siempre tiene que ser algo súper concreto, a veces alcanza con una idea general relacionada al tema. No repitas la conversación ni des una respuesta completa armada, solo una pista.${profile ? ` Datos de este estudiante, para dar una pista más útil cuando venga al caso: ${profile}` : ''}
+IMPORTANTE: sos solo texto — no podés abrir nada, mostrar nada, ni ejecutar ninguna acción en la app. Nunca ofrezcas "mostrar cómo se hace algo" ni digas frases como "si me decís te muestro" — limitate a la sugerencia en sí.`;
   const text = await callClaude(system, recent, 400);
   return text.trim();
 }
@@ -3863,23 +4112,23 @@ async function generateFlavorLine(){
     system = `Sos un asistente pixel-art de una app para aprender inglés (English Lab), y sos fanático de TODA la saga The Legend of Zelda: desde el original de 1986, Zelda II, A Link to the Past, Link's Awakening, Ocarina of Time, Majora's Mask, Oracle of Ages/Seasons, Wind Waker, Four Swords, Minish Cap, Twilight Princess, Phantom Hourglass, Spirit Tracks, Skyward Sword, A Link Between Worlds, Breath of the Wild, Tears of the Kingdom, Echoes of Wisdom, y cualquier personaje, objeto, lugar o momento de lore de toda esa historia.
 Generá UNA frase corta en español (1-2 oraciones), alegórica o con una referencia concreta a algún juego/personaje/objeto/momento de la saga Zelda, que conecte de forma ingeniosa con lo que la persona está haciendo ahora mismo en la app. Variá qué juego o elemento de la saga usás cada vez, no te repitas siempre con los mismos.
 Contexto actual: ${sectionContext}
-No expliques la referencia, solo hacé la conexión de forma natural y motivadora. Sin markdown, sin comillas, sin mencionar que sos una IA.`;
+No expliques la referencia, solo hacé la conexión de forma natural y motivadora. Nunca ofrezcas mostrar o hacer algo en la app (sos solo texto). Sin markdown, sin comillas, sin mencionar que sos una IA.`;
   } else if(focus === 'metroid'){
     system = `Sos un asistente pixel-art de una app para aprender inglés (English Lab), y sos fanático de TODA la saga Metroid: desde el Metroid original de 1986, Metroid II, Super Metroid, Metroid Fusion, Metroid Prime 1/2/3, Metroid Prime Hunters, Metroid: Other M, Samus Returns, Metroid Dread, Metroid Prime Remastered, y cualquier personaje, objeto, lugar o momento de lore de toda esa historia.
 Generá UNA frase corta en español (1-2 oraciones), alegórica o con una referencia concreta a algún juego/personaje/objeto/momento de la saga Metroid, que conecte de forma ingeniosa con lo que la persona está haciendo ahora mismo en la app. Variá qué juego o elemento de la saga usás cada vez, no te repitas siempre con los mismos.
 Contexto actual: ${sectionContext}
-No expliques la referencia, solo hacé la conexión de forma natural y motivadora. Sin markdown, sin comillas, sin mencionar que sos una IA.`;
+No expliques la referencia, solo hacé la conexión de forma natural y motivadora. Nunca ofrezcas mostrar o hacer algo en la app (sos solo texto). Sin markdown, sin comillas, sin mencionar que sos una IA.`;
   } else if(focus === 'simpsons'){
     system = `Sos un asistente pixel-art de una app para aprender inglés (English Lab), y sos fanático de Los Simpson, específicamente de la etapa dorada de la serie: las primeras diez temporadas, emitidas originalmente entre 1989 y 1999 (desde los cortos y el piloto hasta más o menos la temporada 10), y siempre pensás en esa etapa con las voces y el estilo del doblaje latinoamericano clásico (Humberto Vélez como Homero, Marina Huerta como Bart, Nancy MacKenzie/Patricia Acevedo como Lisa, Claudia Motta como Marge, y el resto del elenco de esa época). Conocés a fondo a los personajes (Homero, Marge, Bart, Lisa, Maggie, el Sr. Burns, Smithers, Moe, Ned Flanders, Milhouse, Krusty, el Jefe Gorgory, Apu, la directora Skinner, Otto, el reverendo Alegría, etc.), los lugares (Springfield, la planta nuclear, la Taberna de Moe, la escuela primaria de Springfield) y las situaciones icónicas de esos primeros años.
 Generá UNA frase corta en español (1-2 oraciones), alegórica o con una referencia concreta a algún personaje/episodio/situación de esa etapa de Los Simpson (en el estilo del doblaje latino, sin citar diálogo textual con derechos de autor, solo aludiendo de forma natural), que conecte de forma ingeniosa con lo que la persona está haciendo ahora mismo en la app. Variá qué personaje o situación usás cada vez, no te repitas siempre con los mismos.
 Contexto actual: ${sectionContext}
-No expliques la referencia, solo hacé la conexión de forma natural y con humor. Sin markdown, sin comillas, sin mencionar que sos una IA.`;
+No expliques la referencia, solo hacé la conexión de forma natural y con humor. Nunca ofrezcas mostrar o hacer algo en la app (sos solo texto). Sin markdown, sin comillas, sin mencionar que sos una IA.`;
   } else {
     system = `Sos un asistente pixel-art de una app para aprender inglés llamada English Lab, creada por ThanaJAD.
 ThanaJAD es quien programó esta app. Le gusta el desarrollo de software, cocinar, el anime, las computadoras, los idiomas (sabe japonés) y el inglés. Es amigo de Guille, que es quien usa esta app para aprender inglés.
 Generá UNA frase corta en español (1-2 oraciones) con un guiño cariñoso hacia ThanaJAD y su amistad con Guille, usando alguno de sus intereses (programación, cocina, anime, computadoras, idiomas/japonés, inglés) como referencia o metáfora, conectada con lo que Guille está haciendo ahora mismo en la app. Variá qué interés usás cada vez, no te repitas siempre con el mismo.
 Contexto actual: ${sectionContext}
-Tono cercano y alentador, como una referencia interna entre amigos. Sin markdown, sin comillas.`;
+Tono cercano y alentador, como una referencia interna entre amigos. Nunca ofrezcas mostrar o hacer algo en la app (sos solo texto). Sin markdown, sin comillas.`;
   }
 
   const text = await callClaude(system, [{role:"user", content:"Generá la frase."}], 200);
@@ -3916,7 +4165,7 @@ async function showBuddyTip(force){
     bubbleTextEl.textContent = line;
     buddyActionBtn.style.display = 'none';
     buddyActionsDiv.style.display = 'flex';
-    requestAnimationFrame(alignBubbleArrow);
+    requestAnimationFrame(finalizeBubblePlacement);
     let toggleE = false;
     drawBuddy('talk', false, false, false, false, false, true);
     buddyTalkAnim = setInterval(()=>{
@@ -4024,7 +4273,7 @@ async function playConvSuggestion(){
   }
   clearInterval(talkInterval);
   drawBuddy('smile', false, false);
-  requestAnimationFrame(alignBubbleArrow);
+  requestAnimationFrame(finalizeBubblePlacement);
   const input = document.getElementById('chatInput');
   input.value = phrase;
   input.focus();
@@ -4058,7 +4307,7 @@ function showBuddyMessage(text){
   bubbleTextEl.textContent = text;
   buddyActionBtn.style.display = 'none';
   buddyActionsDiv.style.display = 'flex';
-  requestAnimationFrame(alignBubbleArrow);
+  requestAnimationFrame(finalizeBubblePlacement);
   drawBuddy('talk', false, false);
   setTimeout(()=>{ if(!buddyMuted && !buddyDragging) drawBuddy('smile', false, false); }, 700);
 }
@@ -4423,7 +4672,7 @@ async function translateLines(lines, sourceLang, targetLang, onProgress){
   let contextHint = '';
   const result = [];
   for(let i = 0; i < batches.length; i++){
-    if(onProgress) onProgress(i + 1, batches.length);
+    if(onProgress) onProgress(i + 1, batches.length, lines.length); // lines.length: el total ya está disponible acá, a diferencia de esperar a que termine todo
     const batch = batches[i];
     const translated = await translateBatchWithRetry(batch, sourceLang, targetLang, contextHint);
     result.push(...translated);
@@ -4585,62 +4834,63 @@ setupDropzone(document.getElementById('srtDropzone'), document.getElementById('s
 });
 
 // ---------- Traducir: texto ----------
-document.getElementById('translateTxtBtn').addEventListener('click', async () => {
-  const text = document.getElementById('txtTranslateInput').value.trim();
+// Patrón común a "traducir y mostrar el resultado": deshabilitar el botón, limpiar el resultado
+// anterior, mostrar progreso, traducir, armar la descarga, manejar error — Texto y Subtítulo
+// tenían esta misma secuencia escrita dos veces, con solo la fuente y el nombre de archivo
+// cambiados (mismo patrón que generateExercise() para Gramática/Lectura).
+async function runTranslation({ btnId, validate, translateFn, buildOutputName, buildSuccessMsg }){
   const statusEl = document.getElementById('translationStatus');
   const progressEl = document.getElementById('translationProgress');
   const progressText = document.getElementById('translationProgressText');
   const resultBox = document.getElementById('translationResultBox');
-  if(!text){ setStatus(statusEl, 'Escribí o subí algo de texto primero.', 'err'); return; }
+  const btn = document.getElementById(btnId);
+
+  const validationError = validate();
+  if(validationError){ setStatus(statusEl, validationError, 'err'); return; }
+
   resultBox.style.display = 'none';
   setStatus(statusEl, '');
   progressEl.style.display = 'flex';
-  document.getElementById('translateTxtBtn').disabled = true;
+  btn.disabled = true;
   try{
-    const { output, sourceLang, targetLang } = await translatePlainText(text, (i, total) => {
-      progressText.textContent = total > 1 ? `Traduciendo lote ${i} de ${total}…` : 'Traduciendo…';
+    const result = await translateFn((i, total, lineCount) => {
+      progressText.textContent = total > 1
+        ? `Traduciendo lote ${i} de ${total}${lineCount ? ` (${lineCount} líneas en total)` : ''}…`
+        : (lineCount ? `Traduciendo ${lineCount} líneas…` : 'Traduciendo…');
     });
-    document.getElementById('translationPreview').textContent = output;
+    document.getElementById('translationPreview').textContent = result.output;
     resultBox.style.display = 'block';
-    const outName = (txtSourceFilename ? txtSourceFilename.replace(/\.txt$/i, '') : 'traduccion') + `_${targetLang}.txt`;
-    document.getElementById('downloadTranslationBtn').onclick = () => downloadTextFile(outName, output);
-    setStatus(statusEl, `Traducido de ${LANG_NAMES[sourceLang]} a ${LANG_NAMES[targetLang]} ✓`, 'ok');
+    const outName = buildOutputName(result);
+    document.getElementById('downloadTranslationBtn').onclick = () => downloadTextFile(outName, result.output);
+    setStatus(statusEl, buildSuccessMsg(result), 'ok');
   }catch(e){
-    console.error('[Traducción] Error traduciendo texto', e);
+    console.error('[Traducción] Error traduciendo', e);
     setStatus(statusEl, 'Error al traducir: ' + (e?.message || e), 'err');
   }
   progressEl.style.display = 'none';
-  document.getElementById('translateTxtBtn').disabled = false;
+  btn.disabled = false;
+}
+
+document.getElementById('translateTxtBtn').addEventListener('click', () => {
+  const text = document.getElementById('txtTranslateInput').value.trim();
+  runTranslation({
+    btnId: 'translateTxtBtn',
+    validate: () => !text ? 'Escribí o subí algo de texto primero.' : null,
+    translateFn: (onProgress) => translatePlainText(text, onProgress),
+    buildOutputName: ({ targetLang }) => (txtSourceFilename ? txtSourceFilename.replace(/\.txt$/i, '') : 'traduccion') + `_${targetLang}.txt`,
+    buildSuccessMsg: ({ sourceLang, targetLang }) => `Traducido de ${LANG_NAMES[sourceLang]} a ${LANG_NAMES[targetLang]} ✓`,
+  });
 });
 
 // ---------- Traducir: subtítulo ----------
-document.getElementById('translateSrtBtn').addEventListener('click', async () => {
-  const statusEl = document.getElementById('translationStatus');
-  const progressEl = document.getElementById('translationProgress');
-  const progressText = document.getElementById('translationProgressText');
-  const resultBox = document.getElementById('translationResultBox');
-  if(!srtSourceFile){ setStatus(statusEl, 'Subí un archivo de subtítulo primero.', 'err'); return; }
-  resultBox.style.display = 'none';
-  setStatus(statusEl, '');
-  progressEl.style.display = 'flex';
-  document.getElementById('translateSrtBtn').disabled = true;
-  try{
-    const { output, sourceLang, targetLang, format, count } = await translateSubtitleFile(
-      srtSourceFile.filename, srtSourceFile.content,
-      (i, total) => { progressText.textContent = total > 1 ? `Traduciendo lote ${i} de ${total} (${count} líneas en total)…` : `Traduciendo ${count} líneas…`; }
-    );
-    document.getElementById('translationPreview').textContent = output;
-    resultBox.style.display = 'block';
-    const baseName = srtSourceFile.filename.replace(/\.(srt|vtt)$/i, '');
-    const outName = `${baseName}_${targetLang}.${format}`;
-    document.getElementById('downloadTranslationBtn').onclick = () => downloadTextFile(outName, output);
-    setStatus(statusEl, `Traducido de ${LANG_NAMES[sourceLang]} a ${LANG_NAMES[targetLang]} — ${count} líneas ✓`, 'ok');
-  }catch(e){
-    console.error('[Traducción] Error traduciendo subtítulo', e);
-    setStatus(statusEl, 'Error al traducir: ' + (e?.message || e), 'err');
-  }
-  progressEl.style.display = 'none';
-  document.getElementById('translateSrtBtn').disabled = false;
+document.getElementById('translateSrtBtn').addEventListener('click', () => {
+  runTranslation({
+    btnId: 'translateSrtBtn',
+    validate: () => !srtSourceFile ? 'Subí un archivo de subtítulo primero.' : null,
+    translateFn: (onProgress) => translateSubtitleFile(srtSourceFile.filename, srtSourceFile.content, onProgress),
+    buildOutputName: ({ targetLang, format }) => `${srtSourceFile.filename.replace(/\.(srt|vtt)$/i, '')}_${targetLang}.${format}`,
+    buildSuccessMsg: ({ sourceLang, targetLang, count }) => `Traducido de ${LANG_NAMES[sourceLang]} a ${LANG_NAMES[targetLang]} — ${count} líneas ✓`,
+  });
 });
 
 // ---------- Habilitar/deshabilitar la sección entera (oculta por defecto — se activa en Configuración → Avanzadas) ----------
@@ -4701,6 +4951,8 @@ function setupTooltips(){
     el.setAttribute('aria-describedby', id);
   });
 }
+
+document.getElementById('cancelAIWorkerBtn').addEventListener('click', cancelAIWorker);
 
 // ---------- init ----------
 setupTooltips();
@@ -4777,8 +5029,9 @@ async function showAppQR(){
     bubbleTextEl.innerHTML = '<canvas id="buddyQrCanvas"></canvas><span class="qr-bubble-msg">Escaneala con la cámara de otro celular 📱</span>';
     drawQrToCanvas(qr, document.getElementById('buddyQrCanvas'));
     drawBuddy('smile', false, false);
-    // El QR agranda bastante el globo: recalculamos la flecha con el tamaño ya definitivo
-    requestAnimationFrame(alignBubbleArrow);
+    // El QR agranda bastante el globo (mucho más alto que un tip corto): reubicamos el globo
+    // entero y su flecha con el tamaño ya definitivo, no solo la flecha — ver finalizeBubblePlacement()
+    requestAnimationFrame(finalizeBubblePlacement);
   }catch(e){
     if(!buddyBubbleVisible) return;
     bubbleTextEl.innerHTML = '<span class="qr-bubble-msg">No pude generar el código QR. Revisá tu conexión e intentá de nuevo.</span>';
